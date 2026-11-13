@@ -13,7 +13,10 @@ import {
   type WalletSelector,
   type WalletModuleFactory,
 } from "@near-wallet-selector/core";
-import { setupModal, type WalletSelectorModal } from "@near-wallet-selector/modal-ui";
+import {
+  setupModal,
+  type WalletSelectorModal,
+} from "@near-wallet-selector/modal-ui";
 import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupHereWallet } from "@near-wallet-selector/here-wallet";
@@ -36,6 +39,11 @@ const WalletCtx = createContext<Ctx>({
   signOut: async () => {},
 });
 
+function originUrl(path: string): string {
+  if (typeof window === "undefined") return path;
+  return window.location.origin + path;
+}
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [selector, setSelector] = useState<WalletSelector | null>(null);
   const [modal, setModal] = useState<WalletSelectorModal | null>(null);
@@ -47,25 +55,42 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     booted.current = true;
 
     (async () => {
+      const callbackUrl = originUrl("/app");
       const sel = await setupWalletSelector({
         network: NEAR_NETWORK,
         modules: [
-          setupMyNearWallet() as WalletModuleFactory,
-          setupMeteorWallet() as WalletModuleFactory,
+          // HERE Wallet first - best mobile UX, native app with deep links.
           setupHereWallet() as WalletModuleFactory,
+          // Meteor second - works on desktop (extension) and mobile Safari.
+          setupMeteorWallet() as WalletModuleFactory,
+          // MyNearWallet last - desktop-oriented, fragile on mobile but
+          // familiar to long-time NEAR users.
+          setupMyNearWallet({
+            successUrl: callbackUrl,
+            failureUrl: callbackUrl,
+          }) as WalletModuleFactory,
         ],
       });
       const m = setupModal(sel, {
         contractId: "",
-        description: "Sign in to Neda to issue and manage invoices.",
+        description: "Sign in to NEDA to issue invoices and track payments.",
       });
+
       const state = sel.store.getState();
       const active = state.accounts.find((a) => a.active) ?? state.accounts[0];
-      if (active) setAccountId(active.accountId);
+      if (active) {
+        setAccountId(active.accountId);
+        // If wallet-selector restored a session but our server session was
+        // dropped (fresh device, cookies cleared, cross-redirect), establish
+        // the server session so the dashboard renders without a second step.
+        await ensureServerSession(active.accountId);
+      }
 
-      const sub = sel.store.observable.subscribe((s) => {
+      const sub = sel.store.observable.subscribe(async (s) => {
         const a = s.accounts.find((x) => x.active) ?? s.accounts[0];
-        setAccountId(a?.accountId ?? null);
+        const id = a?.accountId ?? null;
+        setAccountId(id);
+        if (id) await ensureServerSession(id);
       });
 
       setSelector(sel);
@@ -78,14 +103,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const openModal = useCallback(() => modal?.show(), [modal]);
 
   const signOut = useCallback(async () => {
-    // Always drop the server session first - that is the source of truth.
     try {
       await fetch("/api/auth", { method: "DELETE" });
     } catch {
-      // ignore network errors on sign-out
+      // ignore
     }
     setAccountId(null);
-    // Try to sign out of the wallet too, but do not fail if none is connected.
     if (!selector) return;
     try {
       const state = selector.store.getState();
@@ -94,12 +117,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const wallet = await selector.wallet();
       await wallet.signOut();
     } catch {
-      // wallet may not be connected or may not support signOut
+      // ignore
     }
   }, [selector]);
 
   return (
-    <WalletCtx.Provider value={{ selector, modal, accountId, openModal, signOut }}>
+    <WalletCtx.Provider
+      value={{ selector, modal, accountId, openModal, signOut }}
+    >
       {children}
     </WalletCtx.Provider>
   );
@@ -107,4 +132,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
 export function useWallet() {
   return useContext(WalletCtx);
+}
+
+// Posts to /api/auth/session which creates a server-side JWT session cookie
+// for the given NEAR account id. Idempotent - safe to call on every mount.
+// The route trusts the wallet-selector connection as proof of possession.
+async function ensureServerSession(nearId: string): Promise<void> {
+  try {
+    await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nearId }),
+    });
+  } catch {
+    // swallow - the user will land on AuthGate which re-triggers this.
+  }
 }
