@@ -78,11 +78,24 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const openModal = useCallback(() => modal?.show(), [modal]);
 
   const signOut = useCallback(async () => {
-    if (!selector) return;
-    const wallet = await selector.wallet();
-    await wallet.signOut();
+    // Always drop the server session first - that is the source of truth.
+    try {
+      await fetch("/api/auth", { method: "DELETE" });
+    } catch {
+      // ignore network errors on sign-out
+    }
     setAccountId(null);
-    await fetch("/api/auth", { method: "DELETE" });
+    // Try to sign out of the wallet too, but do not fail if none is connected.
+    if (!selector) return;
+    try {
+      const state = selector.store.getState();
+      const hasAccount = state.accounts.some((a) => a.active);
+      if (!hasAccount) return;
+      const wallet = await selector.wallet();
+      await wallet.signOut();
+    } catch {
+      // wallet may not be connected or may not support signOut
+    }
   }, [selector]);
 
   return (

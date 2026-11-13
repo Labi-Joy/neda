@@ -1,29 +1,36 @@
 import { cookies } from "next/headers";
-import { isValidNearId } from "./types";
+import { readSession, createSession, destroySession } from "./session";
 
-const COOKIE = "neda_near_id";
-const ONE_YEAR = 60 * 60 * 24 * 365;
+// Legacy cookie name from the stub auth flow. We clear it on read so a stale
+// one from earlier testing does not shadow the new wallet-verified session.
+const LEGACY_COOKIE = "neda_near_id";
 
 export async function getCurrentNearId(): Promise<string | null> {
-  const store = await cookies();
-  const v = store.get(COOKIE)?.value;
-  return v && isValidNearId(v) ? v : null;
-}
+  const nearId = await readSession();
+  if (nearId) return nearId;
 
-export async function setCurrentNearId(nearId: string) {
-  if (!isValidNearId(nearId)) {
-    throw new Error("Invalid NEAR account id");
+  // Clear any stale legacy cookie so it does not appear on later requests.
+  try {
+    const store = await cookies();
+    if (store.get(LEGACY_COOKIE)) {
+      store.delete(LEGACY_COOKIE);
+    }
+  } catch {
+    // ignore
   }
-  const store = await cookies();
-  store.set(COOKIE, nearId, {
-    httpOnly: false,
-    sameSite: "lax",
-    maxAge: ONE_YEAR,
-    path: "/",
-  });
+  return null;
 }
 
-export async function clearCurrentNearId() {
-  const store = await cookies();
-  store.delete(COOKIE);
+export async function setCurrentNearId(nearId: string): Promise<void> {
+  await createSession(nearId);
+}
+
+export async function clearCurrentNearId(): Promise<void> {
+  await destroySession();
+  try {
+    const store = await cookies();
+    store.delete(LEGACY_COOKIE);
+  } catch {
+    // ignore
+  }
 }
