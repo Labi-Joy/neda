@@ -1,9 +1,9 @@
-# Neda — Technical PRD
+# Neda - Technical PRD
 
 **Status:** Locked for hackathon build (2026-11-13 to 2026-11-14)
 **Hackathon:** NEAR HACKATHON, submission deadline 2026-11-14T23:59:00Z
 **Target tracks:** `realworld` (primary), `agents` (secondary)
-**Working name:** Neda (short, memorable, cross-border trade feel — rename on Day 2 if we land a better one)
+**Working name:** Neda (short, memorable, cross-border trade feel - rename on Day 2 if we land a better one)
 
 ---
 
@@ -17,28 +17,28 @@ This is a word-for-word match to the `realworld` track's core prompt. Differenti
 
 - **Only-on-NEAR thesis:** NEAR Intents (1Click API) is the one primitive that lets a client pay from Ethereum/Solana/BTC in their native wallet while the freelancer receives USDC on NEAR with zero gas. No bridge UX, no manual swap, no gas purchase.
 - **Emotional hook:** Lagos/Nairobi/Accra freelancer, US client, 15-20% income erosion from legacy rails. The narrative plays wherever the clip lands.
-- **Track-prompt literalism:** The judges wrote the prompt. We ship the prompt. CSV export, status tracking, gasless, deposit address — every requirement satisfied.
+- **Track-prompt literalism:** The judges wrote the prompt. We ship the prompt. CSV export, status tracking, gasless, deposit address - every requirement satisfied.
 - **Differentiator layer on top:** AI "Command Bar" in dashboard. Freelancer types or speaks `generate invoice for Acme Co $500 net-30` and it ships. Three-track eligibility (realworld + agents).
 
-## 3. Scope — what ships
+## 3. Scope - what ships
 
 ### MVP (must have, Day 1 + first half of Day 2)
-1. **Auth** — NEAR account via wallet selector (MyNearWallet / Meteor). Email-only onboarding stub if wallet is friction.
-2. **Invoice create** — form: client name, email, line items, amount USD, due date, memo. Persisted locally.
-3. **Invoice link** — shareable public `/i/[id]` page. Shows amount, line items, QR code, per-chain deposit addresses, status badge.
-4. **1Click integration** — on invoice create, call 1Click `getQuote` with `EXACT_OUTPUT` + `destinationAsset=USDC-on-NEAR`. Store `correlationId` + `depositAddress` + `chainDepositAddresses`.
-5. **Status polling** — background job (or server-triggered on page load) that polls 1Click orders API and updates invoice state: `pending` → `paid` → `refunded`.
-6. **Freelancer dashboard** — list of invoices, filters, totals (gross earned, pending). Row-click opens detail view with the public link + tx hash.
-7. **CSV export** — paid invoices to CSV with columns: date, client, invoice #, amount USD, currency received, chain, tx hash.
-8. **Landing page** — hero with Lagos/US-client narrative, three-step flow illustration, "launch app" CTA.
+1. **Auth** - NEAR account via wallet selector (MyNearWallet / Meteor). Email-only onboarding stub if wallet is friction.
+2. **Invoice create** - form: client name, email, line items, amount USD, due date, memo. Persisted locally.
+3. **Invoice link** - shareable public `/i/[id]` page. Shows amount, line items, QR code, per-chain deposit addresses, status badge.
+4. **1Click integration** - on invoice create, call 1Click `getQuote` with `EXACT_OUTPUT` + `destinationAsset=USDC-on-NEAR`. Store `correlationId` + `depositAddress` + `chainDepositAddresses`.
+5. **Status polling** - background job (or server-triggered on page load) that polls 1Click orders API and updates invoice state: `pending` → `paid` → `refunded`.
+6. **Freelancer dashboard** - list of invoices, filters, totals (gross earned, pending). Row-click opens detail view with the public link + tx hash.
+7. **CSV export** - paid invoices to CSV with columns: date, client, invoice #, amount USD, currency received, chain, tx hash.
+8. **Landing page** - hero with Lagos/US-client narrative, three-step flow illustration, "launch app" CTA.
 
 ### Differentiation (second half of Day 2)
-9. **AI Command Bar** — persistent input on dashboard. Natural language: `create invoice for Acme Co $500 due Nov 30`, `show me unpaid invoices from October`, `export last quarter as CSV`. Backed by Claude API with tool-calling mapped to our actions.
-10. **Policy YAML (stretch)** — freelancer can set `on-paid` rules (e.g., `40% to savings, 60% stays liquid`). For MVP, savings is a stub tagged "deposited to Rhea pool (demo)". Real Rhea integration only if time.
+9. **AI Command Bar** - persistent input on dashboard. Natural language: `create invoice for Acme Co $500 due Nov 30`, `show me unpaid invoices from October`, `export last quarter as CSV`. Backed by Claude API with tool-calling mapped to our actions.
+10. **Policy YAML (stretch)** - freelancer can set `on-paid` rules (e.g., `40% to savings, 60% stays liquid`). For MVP, savings is a stub tagged "deposited to Rhea pool (demo)". Real Rhea integration only if time.
 
 ### Explicit cuts (do not build)
 - Voice onboarding (nice idea, 4h sink).
-- Aave / Uniswap (not on NEAR — we swapped to Rhea, see above).
+- Aave / Uniswap (not on NEAR - we swapped to Rhea, see above).
 - Real off-ramp to local bank (requires licensed partner).
 - Payroll / recurring invoices.
 - Mobile app.
@@ -105,7 +105,7 @@ Invoice
   - `amount: invoice.amountUsd * 1e6` (USDC is 6 decimals)
   - `recipient: invoice.ownerNearId`
   - `recipientType: DESTINATION_CHAIN`
-  - `refundTo: SENDER_FALLBACK` — set to a system account for refunds, or require client to provide one on invoice page
+  - `refundTo: SENDER_FALLBACK` - set to a system account for refunds, or require client to provide one on invoice page
   - `deadline: dueDate + 7d`
 - Persist `correlationId` + `depositAddress` + `chainDepositAddresses`.
 - Poll `GET /v0/orders?filter[correlationId]=...` every 10s on invoice detail page (SSE optional stretch).
@@ -145,7 +145,7 @@ Strongly preferred:
 
 | Risk | Mitigation |
 |---|---|
-| 1Click JWT auth needed, we don't have one in time | Q-006 — JWT is optional, 0.2% fee without it. Skip JWT for MVP. Register at partners.near-intents.org if we have 20 spare minutes. |
+| 1Click JWT auth needed, we don't have one in time | Q-006 - JWT is optional, 0.2% fee without it. Skip JWT for MVP. Register at partners.near-intents.org if we have 20 spare minutes. |
 | No Intents testnet (Q-007) | Use mainnet with tiny amount ($1-2 USDC) for final demo tx. Local/screencast for development loop. |
 | NEAR wallet selector friction on first use | Add a "no wallet? just use a named account" stub that validates format and stores it. Full sign-in optional. |
 | Rhea SDK undocumented in time | Stub yield deposit as DB-only state. Mark as "demo" in README. |

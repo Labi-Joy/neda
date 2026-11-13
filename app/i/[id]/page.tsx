@@ -118,7 +118,7 @@ export default async function PublicInvoicePage({
 
       <p className="text-center text-xs text-muted-foreground">
         Paid with cross-chain settlement via NEAR Intents. Any token on any
-        supported chain — your freelancer receives USDC on NEAR.
+        supported chain - your freelancer receives USDC on NEAR.
       </p>
     </div>
   );

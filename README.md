@@ -13,15 +13,15 @@
 
 Neda is a cryptocurrency invoicing platform for freelancers who are unfamiliar with crypto. The freelancer creates an invoice. The client pays from any chain (Ethereum, Solana, Bitcoin, Base, Arbitrum, NEAR) using the wallet they already have. The freelancer receives USDC on their NEAR account. Settlement happens in minutes.
 
-The whole flow is possible because of **NEAR Intents** — NEAR's cross-chain settlement layer. One deposit address per invoice, 50+ chains accepted, zero gas required from the freelancer.
+The whole flow is possible because of **NEAR Intents** - NEAR's cross-chain settlement layer. One deposit address per invoice, 50+ chains accepted, zero gas required from the freelancer.
 
-On top of the invoicing core, there's an **AI Command Bar** on the dashboard — a text input powered by Claude with tool-calling into the platform's actions (create invoice, list invoices, export CSV). A freelancer can type `create invoice for Acme Co $500 due Nov 30` and ship.
+On top of the invoicing core, there's an **AI Command Bar** on the dashboard - a text input powered by Claude with tool-calling into the platform's actions (create invoice, list invoices, export CSV). A freelancer can type `create invoice for Acme Co $500 due Nov 30` and ship.
 
 The name `Neda` means *voice* in Persian. The Command Bar is the product thesis: you speak, the platform acts.
 
 ## Who it's for
 
-Freelancers in emerging markets — specifically the ones who:
+Freelancers in emerging markets - specifically the ones who:
 
 - Receive cross-border payments in USD from US/EU clients
 - Lose 15-20% of their real income to banking delays (3-5 days), FX spreads, and 6-8% transaction fees
@@ -45,16 +45,16 @@ pnpm dev
 
 Open `http://localhost:3000`.
 
-### Judge path — see the whole product in 60 seconds
+### Judge path - see the whole product in 60 seconds
 
 1. On the landing page, click **Launch App**.
 2. Enter any valid NEAR account id (e.g. `example.near`). The input accepts named or implicit accounts per NEAR's spec.
 3. On the dashboard, type in the Command Bar: `create invoice for Acme Co $500 due Nov 30`. _(Requires `ANTHROPIC_API_KEY` in `.env`.)_
 4. Alternatively, click **New invoice** and fill the form manually.
 5. On the invoice detail page, click **Copy link**. That URL is the public payment page.
-6. Open the public link in a fresh tab — this is what the client sees. A QR code, per-chain deposit addresses, live status.
+6. Open the public link in a fresh tab - this is what the client sees. A QR code, per-chain deposit addresses, live status.
 7. On mainnet, a client scans and pays from MetaMask (any EVM chain), Phantom (Solana), or Unisat (Bitcoin). The invoice status auto-flips to **Paid** within seconds of settlement.
-8. Back on the dashboard, click **Export CSV** — accountant-ready, no crypto jargon in column names.
+8. Back on the dashboard, click **Export CSV** - accountant-ready, no crypto jargon in column names.
 
 ## How NEAR fits in
 
@@ -74,7 +74,7 @@ This product is only possible because of two NEAR primitives. Without them, the 
 
 ### Gasless by construction
 
-The freelancer **never signs a transaction to receive funds**. 1Click delivers USDC into their NEAR account directly. There is no gas purchase step, no wallet pop-up, no bridge UI. This is the core product thesis — the thing you cannot build this cleanly on any other chain.
+The freelancer **never signs a transaction to receive funds**. 1Click delivers USDC into their NEAR account directly. There is no gas purchase step, no wallet pop-up, no bridge UI. This is the core product thesis - the thing you cannot build this cleanly on any other chain.
 
 ### Where other NEAR primitives fit (on the roadmap)
 
@@ -131,7 +131,7 @@ lib/
 
 ## Hackathon submission
 
-- **Tracks:** `realworld` (primary — invoicing / stablecoin rails for cross-border freelance), `agents` (secondary — natural-language Command Bar with tool-calling)
+- **Tracks:** `realworld` (primary - invoicing / stablecoin rails for cross-border freelance), `agents` (secondary - natural-language Command Bar with tool-calling)
 - **Baseline per Q-002:** None. This project is new, started 2026-11-12, all code within the hackathon window.
 - **Testnet vs mainnet:** NEAR Intents is mainnet-only per Q-007. The demo pays a small real amount (~$2 USDC) from an EVM wallet on mainnet.
 
@@ -143,6 +143,6 @@ What's explicitly cut for the 48-hour window: voice onboarding, payroll/recurrin
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT - see [LICENSE](./LICENSE).
 
 Built at NEAR HACKATHON 2026.

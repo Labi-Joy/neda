@@ -5,7 +5,7 @@ import { createInvoiceDeposit } from "./intents";
 
 const MODEL = "claude-sonnet-4-6";
 
-const SYSTEM_PROMPT = `You are Neda — an AI assistant for a freelancer invoicing platform built on NEAR.
+const SYSTEM_PROMPT = `You are Neda - an AI assistant for a freelancer invoicing platform built on NEAR.
 Your job is to help the signed-in freelancer manage invoices and payments using the provided tools.
 
 Rules:

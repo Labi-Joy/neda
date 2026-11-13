@@ -73,7 +73,7 @@ export default function LandingPage() {
                 n: "02",
                 title: "Client pays from anywhere",
                 body:
-                  "Share one link. Your client pays from MetaMask, Phantom, or any wallet, on any chain. ETH, SOL, BTC, Base — all accepted.",
+                  "Share one link. Your client pays from MetaMask, Phantom, or any wallet, on any chain. ETH, SOL, BTC, Base - all accepted.",
               },
               {
                 n: "03",
@@ -110,7 +110,7 @@ export default function LandingPage() {
             </h2>
             <p className="mt-4 text-muted-foreground">
               Open the dashboard. The Command Bar listens. Create invoices, pull
-              reports, export CSVs for your accountant — all in plain English.
+              reports, export CSVs for your accountant - all in plain English.
               No forms unless you want them.
             </p>
           </div>
@@ -141,7 +141,7 @@ export default function LandingPage() {
               <p className="mt-4 text-muted-foreground max-w-xl">
                 Intents is NEAR&apos;s cross-chain settlement layer. One deposit
                 address per invoice, 50+ chains accepted, zero gas for the
-                freelancer. This product is only possible here — the primitive
+                freelancer. This product is only possible here - the primitive
                 does not exist elsewhere.
               </p>
             </div>

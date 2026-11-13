@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Neda — Get paid in USDC from anywhere",
+  title: "Neda - Get paid in USDC from anywhere",
   description:
     "Freelancer invoicing on NEAR. Clients pay from any chain. You receive USDC. No wallet, no gas, no bank.",
 };
