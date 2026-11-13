@@ -4,6 +4,7 @@ import { getCurrentNearId } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { CommandBar } from "@/components/command-bar";
 import { ShineButton } from "@/components/shine-button";
+import { DashboardSyncWatcher } from "@/components/dashboard-sync-watcher";
 
 function formatUsd(n: number): string {
   return n.toLocaleString("en-US", {
@@ -54,8 +55,13 @@ export default async function DashboardPage() {
     )
     .reduce((s, i) => s + (i.receivedAmount ?? i.amountUsd), 0);
 
+  const pendingInvoiceIds = invoices
+    .filter((i) => i.status === "pending")
+    .map((i) => i.id);
+
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10 space-y-8 md:space-y-10">
+      <DashboardSyncWatcher invoiceIds={pendingInvoiceIds} />
       <div className="space-y-2">
         <div className="text-xs font-mono text-muted-foreground break-all">
           Signed in as <span className="text-foreground">{nearId}</span>

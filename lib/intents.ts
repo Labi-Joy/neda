@@ -119,6 +119,11 @@ async function getQuoteForOrigin(
   return OneClickService.getQuote(quoteRequest);
 }
 
+// 1Click returns tx hashes inconsistently: destinationChainTxHashes and
+// originChainTxHashes are arrays of {hash, explorerUrl} objects, nearTxHashes
+// is an array of raw string hashes.
+type HashEntry = { hash: string; explorerUrl?: string } | string;
+
 export type OneClickStatus = {
   status: string;
   updatedAt?: string;
@@ -130,11 +135,17 @@ export type OneClickStatus = {
     amountOutFormatted?: string;
     refundedAmount?: string;
     refundReason?: string | null;
-    originChainTxHashes?: string[];
-    destinationChainTxHashes?: string[];
-    nearTxHashes?: string[];
+    originChainTxHashes?: HashEntry[];
+    destinationChainTxHashes?: HashEntry[];
+    nearTxHashes?: HashEntry[];
   };
 };
+
+export function extractHash(entry: HashEntry | undefined): string | null {
+  if (!entry) return null;
+  if (typeof entry === "string") return entry;
+  return entry.hash ?? null;
+}
 
 export async function getOrderStatusByDeposit(
   depositAddress: string,

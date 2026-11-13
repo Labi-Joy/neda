@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getOrderStatusByDeposit, type OneClickStatus } from "@/lib/intents";
+import {
+  getOrderStatusByDeposit,
+  extractHash,
+  type OneClickStatus,
+} from "@/lib/intents";
 
 type DepositMap = Record<
   string,
@@ -37,9 +41,13 @@ function isRefunded(s: string | undefined): boolean {
 
 function pickTxHash(d: OneClickStatus["swapDetails"]): string | null {
   if (!d) return null;
-  // NEAR destination tx is the clearest receipt of USDC landing on NEAR
-  const near = d.destinationChainTxHashes?.[0] || d.nearTxHashes?.[0];
-  return near ?? d.originChainTxHashes?.[0] ?? null;
+  // Destination (NEAR) tx is the clearest receipt of USDC landing on the
+  // freelancer's account. Fall back to near intent tx or origin chain tx.
+  return (
+    extractHash(d.destinationChainTxHashes?.[0]) ??
+    extractHash(d.nearTxHashes?.[0]) ??
+    extractHash(d.originChainTxHashes?.[0])
+  );
 }
 
 export async function POST(
