@@ -14,8 +14,8 @@ export default async function AppLayout({
     return (
       <div className="flex-1 flex flex-col">
         <header className="mx-auto w-full max-w-6xl flex items-center justify-between px-6 py-5">
-          <Link href="/" className="font-semibold tracking-tight text-lg">
-            neda
+          <Link href="/" className="font-bold tracking-widest text-lg">
+            NEDA
           </Link>
         </header>
         <AuthGate />

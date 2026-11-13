@@ -3,231 +3,149 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 
-// Process-draw diagram. SVG with a dim dashed track and a crimson line that
-// sweeps left-to-right over 3s. As the line reaches each node, it pops crimson.
-
 const CHAINS = ["Ethereum", "Arbitrum", "Base", "Solana"];
-const LINE_DURATION_S = 3;
-const NODE_HIT_FRACTIONS = [0.18, 0.34, 0.5, 0.66]; // when the tip crosses each origin node
-const INTENTS_HIT = 0.82;
-const DEST_HIT = 0.98;
+
+// Timings in ms, spread so the eye tracks the fan-in before settling at USDC.
+const CHAIN_HIT = [0, 160, 320, 480];
+const INTENTS_HIT = 820;
+const DEST_HIT = 1150;
 
 export function FlowDiagram() {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.4 });
+  const inView = useInView(ref, { amount: 0.4 });
   const reduce = useReducedMotion();
 
-  // nodeState[i] : 0=idle, 1=lit
   const [originLit, setOriginLit] = useState<boolean[]>([false, false, false, false]);
   const [intentsLit, setIntentsLit] = useState(false);
   const [destLit, setDestLit] = useState(false);
 
   useEffect(() => {
-    if (!inView || reduce) {
-      if (reduce) {
-        setOriginLit([true, true, true, true]);
-        setIntentsLit(true);
-        setDestLit(true);
-      }
+    if (reduce) {
+      setOriginLit([true, true, true, true]);
+      setIntentsLit(true);
+      setDestLit(true);
       return;
     }
+    if (!inView) {
+      setOriginLit([false, false, false, false]);
+      setIntentsLit(false);
+      setDestLit(false);
+      return;
+    }
+
     const timers: ReturnType<typeof setTimeout>[] = [];
-    NODE_HIT_FRACTIONS.forEach((f, i) => {
+    CHAIN_HIT.forEach((ms, i) => {
       timers.push(
         setTimeout(() => {
           setOriginLit((s) => s.map((v, idx) => (idx === i ? true : v)));
-        }, f * LINE_DURATION_S * 1000),
+        }, ms),
       );
     });
-    timers.push(setTimeout(() => setIntentsLit(true), INTENTS_HIT * LINE_DURATION_S * 1000));
-    timers.push(setTimeout(() => setDestLit(true), DEST_HIT * LINE_DURATION_S * 1000));
+    timers.push(setTimeout(() => setIntentsLit(true), INTENTS_HIT));
+    timers.push(setTimeout(() => setDestLit(true), DEST_HIT));
+
     return () => timers.forEach(clearTimeout);
   }, [inView, reduce]);
 
   return (
     <div
       ref={ref}
-      className="rounded-md border border-border bg-card p-6 md:p-10 overflow-hidden"
+      className="rounded-md border border-border bg-card p-6 md:p-10"
     >
-      <div className="relative">
-        <svg
-          viewBox="0 0 800 360"
-          className="w-full h-auto"
-          aria-labelledby="flow-title"
-          role="img"
-        >
-          <title id="flow-title">
-            Cross-chain payment flow from four origin chains through NEAR
-            Intents, settling as USDC on NEAR
-          </title>
-
-          {/* Dim dashed track */}
-          <path
-            d={TRACK_PATH}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeDasharray="4 6"
-            className="text-border"
-          />
-
-          {/* Crimson line drawing over it */}
-          <motion.path
-            d={TRACK_PATH}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            className="text-primary"
-            initial={{ pathLength: 0 }}
-            animate={inView || reduce ? { pathLength: 1 } : { pathLength: 0 }}
-            transition={{ duration: reduce ? 0 : LINE_DURATION_S, ease: [0.22, 1, 0.36, 1] }}
-          />
-
-          {/* Origin chain nodes */}
-          {CHAINS.map((label, i) => {
-            const y = 40 + i * 80;
-            const lit = originLit[i];
-            return (
-              <ChainNode
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-8 md:gap-12 items-center text-sm">
+        {/* Left: client sources */}
+        <div className="space-y-3">
+          <div className="text-xs font-mono text-muted-foreground">
+            Client pays from
+          </div>
+          <ul className="space-y-2">
+            {CHAINS.map((label, i) => (
+              <motion.li
                 key={label}
-                x={100}
-                y={y}
-                label={label}
-                lit={lit}
-              />
-            );
-          })}
+                animate={{
+                  borderColor: originLit[i]
+                    ? "var(--primary)"
+                    : "var(--border)",
+                  color: originLit[i] ? "var(--primary)" : "var(--foreground)",
+                }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="flex items-center justify-between border rounded px-3 py-2.5"
+              >
+                <span>{label}</span>
+                <motion.span
+                  animate={{
+                    scale: originLit[i] ? [1, 1.08, 1] : 1,
+                  }}
+                  transition={{ duration: 0.4 }}
+                  className="text-xs font-mono text-muted-foreground"
+                >
+                  USDC
+                </motion.span>
+              </motion.li>
+            ))}
+          </ul>
+        </div>
 
-          {/* Intents disc (center) */}
-          <IntentsDisc cx={400} cy={180} lit={intentsLit} />
+        {/* Center: intents disc */}
+        <div className="flex flex-col items-center justify-center gap-3 py-4">
+          <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+            via
+          </div>
+          <motion.div
+            animate={{
+              borderColor: intentsLit ? "var(--primary)" : "var(--border)",
+              backgroundColor: intentsLit
+                ? "color-mix(in oklch, var(--primary) 10%, transparent)"
+                : "color-mix(in oklch, var(--primary) 2%, transparent)",
+              scale: intentsLit ? [1, 1.1, 1] : 1,
+            }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="h-16 w-16 rounded-full border flex items-center justify-center"
+          >
+            <motion.span
+              animate={{
+                color: intentsLit ? "var(--primary)" : "var(--muted-foreground)",
+              }}
+              className="font-mono text-xs tracking-tight"
+            >
+              intents
+            </motion.span>
+          </motion.div>
+          <div className="font-mono text-[11px] text-muted-foreground">~2 min</div>
+        </div>
 
-          {/* Destination */}
-          <DestinationNode cx={700} cy={180} lit={destLit} />
-        </svg>
-      </div>
-
-      <div className="mt-6 flex items-center justify-between text-xs font-mono text-muted-foreground">
-        <span>4 origin chains</span>
-        <span>via NEAR Intents · ~2 min</span>
-        <span>USDC on NEAR</span>
+        {/* Right: destination */}
+        <div className="space-y-3">
+          <div className="text-xs font-mono text-muted-foreground">
+            Freelancer receives
+          </div>
+          <motion.div
+            animate={{
+              borderColor: destLit ? "var(--primary)" : "var(--border)",
+              backgroundColor: destLit
+                ? "color-mix(in oklch, var(--primary) 8%, transparent)"
+                : "color-mix(in oklch, var(--primary) 2%, transparent)",
+            }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="border rounded px-3 py-2.5 flex items-center justify-between"
+          >
+            <span className="font-medium">USDC on NEAR</span>
+            <motion.span
+              animate={{
+                color: destLit ? "var(--primary)" : "var(--muted-foreground)",
+                opacity: destLit ? 1 : 0.6,
+              }}
+              className="text-xs font-mono"
+            >
+              {destLit ? "settled" : "awaiting"}
+            </motion.span>
+          </motion.div>
+          <div className="text-xs text-muted-foreground mt-4 leading-relaxed">
+            Zero gas purchased. Zero bridge UI. The freelancer&apos;s wallet
+            balance just goes up.
+          </div>
+        </div>
       </div>
     </div>
-  );
-}
-
-const TRACK_PATH = [
-  "M 100 40",
-  "C 240 40, 320 60, 380 160",
-  "L 400 180",
-  "M 100 120",
-  "C 240 120, 320 150, 380 170",
-  "L 400 180",
-  "M 100 200",
-  "C 240 200, 320 180, 380 180",
-  "L 400 180",
-  "M 100 280",
-  "C 240 280, 320 240, 380 190",
-  "L 400 180",
-  "M 420 180",
-  "C 540 180, 600 180, 680 180",
-].join(" ");
-
-function ChainNode({
-  x,
-  y,
-  label,
-  lit,
-}: {
-  x: number;
-  y: number;
-  label: string;
-  lit: boolean;
-}) {
-  return (
-    <g>
-      <motion.circle
-        cx={x}
-        cy={y}
-        r="7"
-        className={lit ? "fill-primary" : "fill-border"}
-        animate={lit ? { scale: [1, 1.35, 1] } : { scale: 1 }}
-        style={{ transformOrigin: `${x}px ${y}px` }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-      />
-      <text
-        x={x - 18}
-        y={y + 4}
-        textAnchor="end"
-        className="fill-foreground"
-        style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
-      >
-        {label}
-      </text>
-    </g>
-  );
-}
-
-function IntentsDisc({ cx, cy, lit }: { cx: number; cy: number; lit: boolean }) {
-  return (
-    <g>
-      <motion.circle
-        cx={cx}
-        cy={cy}
-        r="34"
-        fill="none"
-        strokeWidth="2"
-        className={lit ? "stroke-primary" : "stroke-border"}
-        animate={lit ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-        style={{ transformOrigin: `${cx}px ${cy}px` }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      />
-      <text
-        x={cx}
-        y={cy + 4}
-        textAnchor="middle"
-        className={lit ? "fill-primary" : "fill-muted-foreground"}
-        style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}
-      >
-        intents
-      </text>
-    </g>
-  );
-}
-
-function DestinationNode({ cx, cy, lit }: { cx: number; cy: number; lit: boolean }) {
-  return (
-    <g>
-      <motion.rect
-        x={cx - 60}
-        y={cy - 22}
-        width="120"
-        height="44"
-        rx="6"
-        fill="none"
-        strokeWidth="2"
-        className={lit ? "stroke-primary" : "stroke-border"}
-        animate={lit ? { opacity: [0.4, 1] } : { opacity: 0.4 }}
-        transition={{ duration: 0.3 }}
-      />
-      <text
-        x={cx}
-        y={cy - 2}
-        textAnchor="middle"
-        className="fill-foreground"
-        style={{ fontFamily: "var(--font-sans)", fontWeight: 500, fontSize: 14 }}
-      >
-        USDC on NEAR
-      </text>
-      <text
-        x={cx}
-        y={cy + 14}
-        textAnchor="middle"
-        className={lit ? "fill-primary" : "fill-muted-foreground"}
-        style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}
-      >
-        {lit ? "settled" : "awaiting"}
-      </text>
-    </g>
   );
 }

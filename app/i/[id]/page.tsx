@@ -33,9 +33,9 @@ export default async function PublicInvoicePage({
       <div className="flex items-center justify-between">
         <a
           href="/"
-          className="font-semibold tracking-tight text-lg text-muted-foreground"
+          className="font-bold tracking-widest text-lg text-muted-foreground"
         >
-          neda
+          NEDA
         </a>
         <Badge variant={isPaid ? "default" : "secondary"} className="capitalize">
           {invoice.status}

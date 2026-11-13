@@ -1,31 +1,35 @@
 "use client";
 
-import { motion, useReducedMotion, type Variants } from "framer-motion";
-
-// Hero reveal: each word rises 28px from 14px blur, staggered 90ms, ease-out-cubic.
-// Accent underline draws under "not across weeks". One orchestrated moment, loop once.
+import { useRef } from "react";
+import {
+  motion,
+  useInView,
+  useReducedMotion,
+  type Variants,
+} from "framer-motion";
 
 const LINE_ONE = ["Invoicing", "that", "routes", "payments"];
 const LINE_TWO = ["across", "chains,"];
-const LINE_THREE_LEAD = [];
 const ACCENT = ["not", "across", "weeks."];
 
 export function HeroHeadline() {
+  const ref = useRef<HTMLHeadingElement>(null);
+  const inView = useInView(ref, { amount: 0.3 });
   const reduce = useReducedMotion();
 
-  const wordVariants = {
+  const variants: Variants = {
     hidden: { y: 28, opacity: 0, filter: "blur(14px)" },
     show: { y: 0, opacity: 1, filter: "blur(0px)" },
   };
 
-  const wordTransition = {
-    duration: 0.65,
+  const transition = {
+    duration: 0.6,
     ease: [0.215, 0.61, 0.355, 1] as const,
   };
 
   if (reduce) {
     return (
-      <h1 className="heading-tight text-6xl md:text-[clamp(3.5rem,8vw,7.5rem)] leading-[0.95]">
+      <h1 className="heading-tight text-5xl md:text-[clamp(2.75rem,5vw,4.5rem)] leading-[1.02]">
         Invoicing that routes payments across chains,
         <span className="text-primary"> not across weeks.</span>
       </h1>
@@ -33,20 +37,39 @@ export function HeroHeadline() {
   }
 
   return (
-    <h1 className="heading-tight text-6xl md:text-[clamp(3.5rem,8vw,7.5rem)] leading-[0.95]">
-      <WordRow words={LINE_ONE} variants={wordVariants} transition={wordTransition} baseDelay={0} />
+    <h1
+      ref={ref}
+      className="heading-tight text-5xl md:text-[clamp(2.75rem,5vw,4.5rem)] leading-[1.02]"
+    >
+      <WordRow
+        words={LINE_ONE}
+        variants={variants}
+        transition={transition}
+        baseDelay={0}
+        inView={inView}
+      />
       <br />
-      <WordRow words={LINE_TWO} variants={wordVariants} transition={wordTransition} baseDelay={0.09 * LINE_ONE.length} />
+      <WordRow
+        words={LINE_TWO}
+        variants={variants}
+        transition={transition}
+        baseDelay={0.085 * LINE_ONE.length}
+        inView={inView}
+      />
       <br />
       <span className="relative inline-block">
         <WordRow
           words={ACCENT}
-          variants={wordVariants}
-          transition={wordTransition}
-          baseDelay={0.09 * (LINE_ONE.length + LINE_TWO.length)}
+          variants={variants}
+          transition={transition}
+          baseDelay={0.085 * (LINE_ONE.length + LINE_TWO.length)}
           colorClass="text-primary"
+          inView={inView}
         />
-        <AccentUnderline delay={0.09 * (LINE_ONE.length + LINE_TWO.length) + 0.45} />
+        <AccentUnderline
+          delay={0.085 * (LINE_ONE.length + LINE_TWO.length) + 0.4}
+          inView={inView}
+        />
       </span>
     </h1>
   );
@@ -58,23 +81,28 @@ function WordRow({
   transition,
   baseDelay,
   colorClass,
+  inView,
 }: {
   words: string[];
   variants: Variants;
   transition: object;
   baseDelay: number;
   colorClass?: string;
+  inView: boolean;
 }) {
   return (
     <>
       {words.map((w, i) => (
-        <span key={`${w}-${i}`} className="inline-block overflow-hidden align-baseline">
+        <span
+          key={`${w}-${i}`}
+          className="inline-block overflow-hidden align-baseline"
+        >
           <motion.span
             className={`inline-block ${colorClass ?? ""}`}
             initial="hidden"
-            animate="show"
+            animate={inView ? "show" : "hidden"}
             variants={variants}
-            transition={{ ...transition, delay: baseDelay + i * 0.09 }}
+            transition={{ ...transition, delay: baseDelay + i * 0.085 }}
           >
             {w}
             {i < words.length - 1 && " "}
@@ -85,14 +113,20 @@ function WordRow({
   );
 }
 
-function AccentUnderline({ delay }: { delay: number }) {
+function AccentUnderline({
+  delay,
+  inView,
+}: {
+  delay: number;
+  inView: boolean;
+}) {
   return (
     <motion.svg
       viewBox="0 0 400 12"
       preserveAspectRatio="none"
-      className="absolute left-0 right-0 -bottom-2 md:-bottom-4 w-full h-[0.25em]"
+      className="absolute left-0 right-0 -bottom-2 md:-bottom-3 w-full h-[0.22em]"
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      animate={{ opacity: inView ? 1 : 0 }}
       transition={{ delay, duration: 0.1 }}
       aria-hidden="true"
     >
@@ -104,7 +138,7 @@ function AccentUnderline({ delay }: { delay: number }) {
         fill="none"
         className="text-primary"
         initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
+        animate={{ pathLength: inView ? 1 : 0 }}
         transition={{ delay, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       />
     </motion.svg>

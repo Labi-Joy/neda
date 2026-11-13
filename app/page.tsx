@@ -1,18 +1,18 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { HeroCommand } from "@/components/hero-command";
 import { HeroHeadline } from "@/components/hero-headline";
 import { FlowDiagram } from "@/components/flow-diagram";
 import { CtaSuccess } from "@/components/cta-success";
 import { HeroBackground } from "@/components/hero-background";
+import { ShineButton } from "@/components/shine-button";
 
 export default function LandingPage() {
   return (
     <main className="flex-1">
       <header className="relative z-20 mx-auto max-w-6xl flex items-center justify-between px-6 py-6">
-        <Link href="/" className="font-semibold tracking-tight text-lg">
-          neda
+        <Link href="/" className="font-bold tracking-widest text-lg">
+          NEDA
         </Link>
         <nav className="flex items-center gap-3">
           <ThemeToggle />
@@ -24,68 +24,55 @@ export default function LandingPage() {
           >
             github
           </a>
-          <Button asChild size="sm">
-            <Link href="/app">Launch app</Link>
-          </Button>
+          <ShineButton href="/app" size="sm">
+            Launch app
+          </ShineButton>
         </nav>
       </header>
 
-      {/* HERO */}
+      {/* HERO - split: headline on left, Command Bar on right */}
       <section className="relative overflow-hidden">
         <HeroBackground />
-        {/* Soft gradient scrim so text stays legible over the particle field */}
         <div
           aria-hidden="true"
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, color-mix(in oklch, var(--background) 20%, transparent) 0%, color-mix(in oklch, var(--background) 70%, transparent) 60%, var(--background) 100%)",
+              "linear-gradient(to bottom, color-mix(in oklch, var(--background) 25%, transparent) 0%, color-mix(in oklch, var(--background) 70%, transparent) 60%, var(--background) 100%)",
           }}
         />
-        <div className="relative z-10 mx-auto max-w-6xl px-6 pt-10 md:pt-24 pb-10 md:pb-16">
-          <div className="max-w-5xl">
-            <div className="text-xs font-mono text-muted-foreground">
-              Built for NEAR HACKATHON · Real-World Money
+        <div className="relative z-10 mx-auto max-w-6xl px-6 pt-10 md:pt-20 pb-20 md:pb-28">
+          <div className="grid md:grid-cols-12 gap-10 md:gap-14 items-center">
+            <div className="md:col-span-6 lg:col-span-7">
+              <div className="text-xs font-mono text-muted-foreground">
+                Built for NEAR HACKATHON · Real-World Money
+              </div>
+              <div className="mt-8">
+                <HeroHeadline />
+              </div>
+              <p className="mt-8 text-base md:text-lg text-muted-foreground max-w-xl leading-relaxed">
+                Your US client pays USDC on Ethereum. You get USDC on NEAR.
+                Two minutes, no bridge, no gas, no bank.
+              </p>
+              <div className="mt-10 flex items-center gap-5">
+                <ShineButton href="/app" size="lg">
+                  Create your first invoice
+                </ShineButton>
+                <a
+                  href="#how"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  See the flow
+                </a>
+              </div>
             </div>
-            <div className="mt-10">
-              <HeroHeadline />
-            </div>
-            <p className="mt-10 text-lg md:text-2xl text-muted-foreground max-w-3xl leading-relaxed">
-              Your US client pays USDC on Ethereum. You get USDC on NEAR.
-              Two minutes, no bridge, no gas, no bank.
-            </p>
-            <div className="mt-12 flex items-center gap-6">
-              <Button asChild size="lg">
-                <Link href="/app">Create your first invoice</Link>
-              </Button>
-              <a
-                href="#how"
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                See the flow
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* COMMAND BAR DEMO BAND */}
-      <section className="mx-auto max-w-6xl px-6 pb-28">
-        <div className="grid md:grid-cols-12 gap-6 items-end">
-          <div className="md:col-span-5">
-            <div className="text-xs font-mono text-muted-foreground">
-              The command bar
+            <div className="md:col-span-6 lg:col-span-5">
+              <HeroCommand />
+              <p className="mt-4 text-xs font-mono text-muted-foreground">
+                Powered by NEAR AI. NEDA means <em>voice</em> in Persian.
+              </p>
             </div>
-            <h2 className="heading-tight mt-3 text-2xl md:text-3xl leading-[1.1]">
-              Talk to your books in plain English.
-            </h2>
-            <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
-              NEDA means <em>voice</em> in Persian. We named it that because you
-              can just talk to it. Powered by NEAR AI.
-            </p>
-          </div>
-          <div className="md:col-span-7">
-            <HeroCommand />
           </div>
         </div>
       </section>
@@ -152,7 +139,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SUSTAINABILITY — why this matters, who it is for, how it endures */}
+      {/* SUSTAINABILITY */}
       <section className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <div className="grid md:grid-cols-12 gap-10">
@@ -208,7 +195,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs font-mono text-muted-foreground">
-          <div>neda / 2026 / built at NEAR HACKATHON</div>
+          <div>NEDA / 2026 / built at NEAR HACKATHON</div>
           <div className="flex gap-5">
             <a
               href="https://github.com/Labi-Joy/neda"
