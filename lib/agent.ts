@@ -1,11 +1,12 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { ulid } from "ulid";
 import { db } from "./db";
-import { createInvoiceDeposit } from "./intents";
+import { createMultiChainDeposit } from "./intents";
 
-const MODEL = "claude-sonnet-4-6";
+const BASE_URL = process.env.NEAR_AI_BASE_URL || "https://cloud-api.near.ai/v1";
+const MODEL = process.env.NEAR_AI_MODEL || "zai-org/GLM-5.1-FP8";
 
-const SYSTEM_PROMPT = `You are Neda - an AI assistant for a freelancer invoicing platform built on NEAR.
+const SYSTEM_PROMPT = `You are Neda, an AI assistant for a freelancer invoicing platform built on NEAR.
 Your job is to help the signed-in freelancer manage invoices and payments using the provided tools.
 
 Rules:
@@ -15,65 +16,77 @@ Rules:
 - Never fabricate an invoice id or tx hash. Only report what tools returned.
 - If the user asks something outside invoice management, politely redirect.`;
 
-const tools: Anthropic.Messages.Tool[] = [
+const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
-    name: "create_invoice",
-    description:
-      "Create a new invoice. Returns the created invoice id and the public payment URL.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        clientName: { type: "string", description: "Client company or person name" },
-        clientEmail: { type: "string", description: "Client email, optional" },
-        amountUsd: { type: "number", description: "Total amount in USD" },
-        dueDateIso: {
-          type: "string",
-          description: "Due date in YYYY-MM-DD format",
+    type: "function",
+    function: {
+      name: "create_invoice",
+      description:
+        "Create a new invoice. Returns the created invoice id and the public payment URL.",
+      parameters: {
+        type: "object",
+        properties: {
+          clientName: { type: "string", description: "Client company or person name" },
+          clientEmail: { type: "string", description: "Client email, optional" },
+          amountUsd: { type: "number", description: "Total amount in USD" },
+          dueDateIso: {
+            type: "string",
+            description: "Due date in YYYY-MM-DD format",
+          },
+          memo: { type: "string", description: "Short memo, optional" },
         },
-        memo: { type: "string", description: "Short memo, optional" },
-      },
-      required: ["clientName", "amountUsd", "dueDateIso"],
-    },
-  },
-  {
-    name: "list_invoices",
-    description: "List invoices for the signed-in freelancer, optionally filtered.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        status: {
-          type: "string",
-          enum: ["pending", "paid", "expired", "refunded", "all"],
-          description: "Filter by status, or 'all'",
-        },
-        sinceIso: {
-          type: "string",
-          description: "Only invoices created on or after this ISO date",
-        },
-        limit: { type: "integer", description: "Max rows to return, default 20" },
+        required: ["clientName", "amountUsd", "dueDateIso"],
       },
     },
   },
   {
-    name: "get_invoice",
-    description: "Get details of one invoice by id",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        id: { type: "string" },
+    type: "function",
+    function: {
+      name: "list_invoices",
+      description: "List invoices for the signed-in freelancer, optionally filtered.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: {
+            type: "string",
+            enum: ["pending", "paid", "expired", "refunded", "all"],
+            description: "Filter by status, or 'all'",
+          },
+          sinceIso: {
+            type: "string",
+            description: "Only invoices created on or after this ISO date",
+          },
+          limit: { type: "integer", description: "Max rows to return, default 20" },
+        },
       },
-      required: ["id"],
     },
   },
   {
-    name: "export_csv_url",
-    description:
-      "Return a URL the user can click to download a CSV of paid invoices for a date range.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        fromIso: { type: "string" },
-        toIso: { type: "string" },
+    type: "function",
+    function: {
+      name: "get_invoice",
+      description: "Get details of one invoice by id",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+        },
+        required: ["id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "export_csv_url",
+      description:
+        "Return a URL the user can click to download a CSV of paid invoices for a date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          fromIso: { type: "string" },
+          toIso: { type: "string" },
+        },
       },
     },
   },
@@ -88,68 +101,184 @@ export async function runAgent(
   nearId: string,
   userMessage: string,
 ): Promise<AgentOutcome> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return {
-      reply:
-        "AI Command Bar is not configured. Add ANTHROPIC_API_KEY to the environment to enable.",
-      refresh: false,
-    };
+  const apiKey = process.env.NEAR_AI_API_KEY;
+
+  // Mock mode burns zero credits. Use for dev + CI + rehearsal.
+  if (!apiKey || apiKey === "mock") {
+    return runMockAgent(nearId, userMessage);
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = new OpenAI({ apiKey, baseURL: BASE_URL });
   const today = new Date().toISOString().slice(0, 10);
 
-  let messages: Anthropic.Messages.MessageParam[] = [
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: "system", content: SYSTEM_PROMPT },
     { role: "user", content: `(today is ${today}) ${userMessage}` },
   ];
 
   let refresh = false;
 
   for (let step = 0; step < 6; step++) {
-    const resp = await client.messages.create({
+    const resp = await client.chat.completions.create({
       model: MODEL,
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      tools,
       messages,
+      tools,
+      tool_choice: "auto",
+      max_tokens: 1024,
     });
 
-    if (resp.stop_reason === "end_turn" || resp.stop_reason === "stop_sequence") {
-      const text = resp.content
-        .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
-        .map((b) => b.text)
-        .join("\n")
-        .trim();
-      return { reply: text || "Done.", refresh };
+    const choice = resp.choices[0];
+    const msg = choice.message;
+    const toolCalls = msg.tool_calls ?? [];
+
+    if (toolCalls.length === 0) {
+      return { reply: msg.content?.trim() || "Done.", refresh };
     }
 
-    if (resp.stop_reason !== "tool_use") {
-      const text = resp.content
-        .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
-        .map((b) => b.text)
-        .join("\n")
-        .trim();
-      return { reply: text || "Done.", refresh };
-    }
+    messages.push({
+      role: "assistant",
+      content: msg.content ?? null,
+      tool_calls: toolCalls,
+    });
 
-    messages = [...messages, { role: "assistant", content: resp.content }];
-
-    const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
-    for (const block of resp.content) {
-      if (block.type !== "tool_use") continue;
-      const out = await runTool(nearId, block.name, block.input as Record<string, unknown>);
+    for (const call of toolCalls) {
+      if (call.type !== "function") continue;
+      let args: Record<string, unknown> = {};
+      try {
+        args = JSON.parse(call.function.arguments || "{}");
+      } catch {
+        args = {};
+      }
+      const out = await runTool(nearId, call.function.name, args);
       if (out.refresh) refresh = true;
-      toolResults.push({
-        type: "tool_result",
-        tool_use_id: block.id,
+      messages.push({
+        role: "tool",
+        tool_call_id: call.id,
         content: JSON.stringify(out.content),
       });
     }
-
-    messages = [...messages, { role: "user", content: toolResults }];
   }
 
   return { reply: "Hit the step budget without a final reply.", refresh };
+}
+
+// Zero-cost mock agent for dev and rehearsal. Deterministic rules, no model.
+async function runMockAgent(
+  nearId: string,
+  userMessage: string,
+): Promise<AgentOutcome> {
+  const text = userMessage.toLowerCase().trim();
+  const today = new Date();
+
+  // export (check before list so "export paid invoices as csv" doesn't fall into list)
+  if (/\bexport\b|\bcsv\b/.test(text)) {
+    const out = await runTool(nearId, "export_csv_url", {});
+    const data = out.content as { downloadUrl: string };
+    return { reply: `CSV ready: ${data.downloadUrl}`, refresh: false };
+  }
+
+  // list / show / what
+  if (/\b(list|show|how many|what)\b.*\binvoices?\b/.test(text) || /\b(unpaid|pending|paid)\b/.test(text)) {
+    const status = /unpaid|pending|outstanding/.test(text)
+      ? "pending"
+      : /^paid$|\bpaid\b/.test(text)
+        ? "paid"
+        : "all";
+    const out = await runTool(nearId, "list_invoices", { status, limit: 10 });
+    const data = out.content as {
+      count: number;
+      totalUsd: number;
+      invoices: Array<{ clientName: string; amountUsd: number; status: string }>;
+    };
+    if (data.count === 0) return { reply: "No invoices match.", refresh: false };
+    const lines = data.invoices
+      .slice(0, 5)
+      .map((i) => `  - ${i.clientName}: $${i.amountUsd.toFixed(2)} [${i.status}]`)
+      .join("\n");
+    return {
+      reply: `${data.count} invoice(s), $${data.totalUsd.toFixed(2)} total:\n${lines}`,
+      refresh: false,
+    };
+  }
+
+  // create invoice
+  if (/\b(create|new|generate|make|invoice|bill|charge)\b/.test(text)) {
+    const amount = parseAmount(text);
+    const clientName = parseClient(text);
+    const dueDateIso = parseDue(text, today);
+
+    if (!clientName || !amount) {
+      return {
+        reply:
+          "Mock agent needs a client name and amount. Try: `create invoice for Acme Co $500 due Nov 30`.",
+        refresh: false,
+      };
+    }
+
+    const out = await runTool(nearId, "create_invoice", {
+      clientName,
+      amountUsd: amount,
+      dueDateIso,
+    });
+    const data = out.content as {
+      id: string;
+      publicUrl: string;
+      amountUsd: number;
+      clientName: string;
+    };
+    return {
+      reply: `Invoice created for ${data.clientName} ($${data.amountUsd.toFixed(2)}). Link: ${data.publicUrl}`,
+      refresh: true,
+    };
+  }
+
+  return {
+    reply:
+      "Mock mode. Try: `create invoice for Acme $500 due Nov 30`, `show unpaid invoices`, `export csv`.",
+    refresh: false,
+  };
+}
+
+function parseAmount(text: string): number | null {
+  const m = text.match(/\$?\s*([0-9]+(?:[.,][0-9]+)?)\s*(k|thousand)?/i);
+  if (!m) return null;
+  const base = Number(m[1].replace(",", ""));
+  if (!isFinite(base) || base <= 0) return null;
+  return m[2] ? base * 1000 : base;
+}
+
+function parseClient(text: string): string | null {
+  // prefer "for <Name>" up to amount/due marker
+  const m = text.match(/\bfor\s+(.+?)(?:\s+(?:for|\$|[0-9]|due|net-|\b(?:today|tomorrow|next))|$)/i);
+  if (m && m[1].trim()) return titleCase(m[1].trim());
+  return null;
+}
+
+function parseDue(text: string, today: Date): string {
+  const net = text.match(/net[-\s]*([0-9]+)/i);
+  if (net) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + Number(net[1]));
+    return d.toISOString().slice(0, 10);
+  }
+  const explicit = text.match(/due\s+([a-z]+\s+\d{1,2}(?:\s*,?\s*\d{4})?|\d{4}-\d{2}-\d{2})/i);
+  if (explicit) {
+    const parsed = new Date(explicit[1]);
+    if (!isNaN(parsed.getTime())) {
+      if (parsed.getFullYear() < 2000) parsed.setFullYear(today.getFullYear());
+      return parsed.toISOString().slice(0, 10);
+    }
+  }
+  const d = new Date(today);
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0, 10);
+}
+
+function titleCase(s: string): string {
+  return s
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(" ");
 }
 
 async function runTool(
@@ -176,18 +305,26 @@ async function runTool(
         let correlationId: string | null = null;
         let depositAddresses: string | null = null;
         try {
-          const quote = await createInvoiceDeposit({
+          const quotes = await createMultiChainDeposit({
             recipientNearId: nearId,
             amountUsd,
             deadlineIso: deadline.toISOString(),
           });
-          const addrs: Record<string, string> = {};
-          if (quote.quote?.depositAddress) addrs.near = quote.quote.depositAddress;
-          for (const chain of quote.quote?.chainDepositAddresses ?? []) {
-            if (chain.blockchain && chain.address) addrs[chain.blockchain] = chain.address;
+          if (quotes.length > 0) {
+            correlationId = quotes[0].correlationId;
+            const addrs: Record<
+              string,
+              { address: string; amountIn: string; correlationId: string }
+            > = {};
+            for (const q of quotes) {
+              addrs[q.chain] = {
+                address: q.depositAddress,
+                amountIn: q.amountInFormatted,
+                correlationId: q.correlationId,
+              };
+            }
+            depositAddresses = JSON.stringify(addrs);
           }
-          if (Object.keys(addrs).length > 0) depositAddresses = JSON.stringify(addrs);
-          correlationId = quote.correlationId ?? null;
         } catch {
           /* soft-fail */
         }
@@ -202,7 +339,11 @@ async function runTool(
             dueDate,
             memo,
             lineItems: JSON.stringify([
-              { description: memo || `Services for ${clientName}`, quantity: 1, unitPriceUsd: amountUsd },
+              {
+                description: memo || `Services for ${clientName}`,
+                quantity: 1,
+                unitPriceUsd: amountUsd,
+              },
             ]),
             correlationId,
             depositAddresses,
@@ -260,16 +401,19 @@ async function runTool(
           where: { id, ownerNearId: nearId },
         });
         if (!inv) return { refresh: false, content: { error: "not found" } };
-        return { refresh: false, content: {
-          id: inv.id,
-          clientName: inv.clientName,
-          amountUsd: inv.amountUsd,
-          status: inv.status,
-          dueDate: inv.dueDate.toISOString().slice(0, 10),
-          memo: inv.memo,
-          paidAt: inv.paidAt?.toISOString() ?? null,
-          txHash: inv.txHash,
-        } };
+        return {
+          refresh: false,
+          content: {
+            id: inv.id,
+            clientName: inv.clientName,
+            amountUsd: inv.amountUsd,
+            status: inv.status,
+            dueDate: inv.dueDate.toISOString().slice(0, 10),
+            memo: inv.memo,
+            paidAt: inv.paidAt?.toISOString() ?? null,
+            txHash: inv.txHash,
+          },
+        };
       }
       case "export_csv_url": {
         const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

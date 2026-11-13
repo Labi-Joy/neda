@@ -19,8 +19,11 @@ export default async function PublicInvoicePage({
   if (!invoice) notFound();
 
   const lines: LineItem[] = JSON.parse(invoice.lineItems);
-  const addrs = invoice.depositAddresses
-    ? (JSON.parse(invoice.depositAddresses) as Record<string, string>)
+  const deposits = invoice.depositAddresses
+    ? (JSON.parse(invoice.depositAddresses) as Record<
+        string,
+        { address: string; amountIn: string; correlationId: string }
+      >)
     : {};
 
   const isPaid = invoice.status === "paid";
@@ -108,12 +111,12 @@ export default async function PublicInvoicePage({
             </div>
           )}
         </Card>
-      ) : Object.keys(addrs).length === 0 ? (
+      ) : Object.keys(deposits).length === 0 ? (
         <Card className="p-8 text-center text-sm text-muted-foreground">
           Payment routing is still being set up. Refresh in a moment.
         </Card>
       ) : (
-        <PayWidget invoiceId={invoice.id} addresses={addrs} />
+        <PayWidget invoiceId={invoice.id} deposits={deposits} />
       )}
 
       <p className="text-center text-xs text-muted-foreground">

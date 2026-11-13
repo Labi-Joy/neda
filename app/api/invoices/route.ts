@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ulid } from "ulid";
 import { db } from "@/lib/db";
 import { getCurrentNearId } from "@/lib/auth";
-import { createInvoiceDeposit } from "@/lib/intents";
+import { createMultiChainDeposit } from "@/lib/intents";
 
 const lineItemSchema = z.object({
   description: z.string().min(1).max(200),
@@ -54,25 +54,28 @@ export async function POST(req: Request) {
   const deadline = new Date(dueDate.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   let correlationId: string | undefined;
-  let depositAddresses: Record<string, string> | undefined;
+  let depositAddresses: Record<string, { address: string; amountIn: string; correlationId: string }> | undefined;
   let destinationAsset: string | undefined;
 
   try {
-    const quote = await createInvoiceDeposit({
+    const quotes = await createMultiChainDeposit({
       recipientNearId: nearId,
       amountUsd: data.amountUsd,
       deadlineIso: deadline.toISOString(),
     });
 
-    correlationId = quote.correlationId;
-    destinationAsset = "usdc.near";
-
-    const addrs: Record<string, string> = {};
-    if (quote.quote?.depositAddress) addrs.near = quote.quote.depositAddress;
-    for (const chain of quote.quote?.chainDepositAddresses ?? []) {
-      if (chain.blockchain && chain.address) addrs[chain.blockchain] = chain.address;
+    if (quotes.length > 0) {
+      destinationAsset = "usdc.near";
+      correlationId = quotes[0].correlationId;
+      depositAddresses = {};
+      for (const q of quotes) {
+        depositAddresses[q.chain] = {
+          address: q.depositAddress,
+          amountIn: q.amountInFormatted,
+          correlationId: q.correlationId,
+        };
+      }
     }
-    if (Object.keys(addrs).length > 0) depositAddresses = addrs;
   } catch (err) {
     console.error("1Click quote failed:", err);
     // Continue; invoice is saved without deposit addresses and can be re-synced
