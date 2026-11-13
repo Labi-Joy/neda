@@ -146,7 +146,7 @@ export function CommandBar({ nearId }: { nearId: string }) {
       </div>
       <form
         onSubmit={submit}
-        className="flex items-center gap-3 px-5 py-4 font-mono text-[15px] md:text-base"
+        className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4 font-mono text-[15px] md:text-base"
       >
         <span className="text-primary select-none">&gt;</span>
         <input
@@ -159,7 +159,7 @@ export function CommandBar({ nearId }: { nearId: string }) {
                 ? "Transcribing with NEAR AI…"
                 : "create invoice for Acme Co $500 due Nov 30"
           }
-          className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground/60"
+          className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground/60 min-w-0 text-base md:text-inherit"
           disabled={disableInput}
           aria-label="Command bar input"
         />

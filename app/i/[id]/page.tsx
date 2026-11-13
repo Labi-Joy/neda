@@ -32,7 +32,7 @@ export default async function PublicInvoicePage({
   return (
     <div className="flex-1 flex flex-col">
       <SiteHeader variant="public" />
-      <div className="mx-auto max-w-2xl w-full px-6 py-10 space-y-8 flex-1">
+      <div className="mx-auto max-w-2xl w-full px-4 sm:px-6 py-8 sm:py-10 space-y-6 sm:space-y-8 flex-1">
         <div className="flex items-center justify-end">
           <Badge
             variant={isPaid ? "default" : "secondary"}
@@ -47,17 +47,19 @@ export default async function PublicInvoicePage({
         <div className="text-xs font-mono text-muted-foreground">
           Invoice from
         </div>
-        <div className="mt-2 text-xl font-mono">{invoice.ownerNearId}</div>
+        <div className="mt-2 text-lg sm:text-xl font-mono break-all">
+          {invoice.ownerNearId}
+        </div>
       </div>
 
       {/* Amount card */}
-      <section className="rounded-lg border border-border bg-card p-8">
+      <section className="rounded-lg border border-border bg-card p-5 sm:p-6 md:p-8">
         <div className="flex items-baseline justify-between">
           <div>
             <div className="text-xs font-mono text-muted-foreground">
               Amount due
             </div>
-            <div className="mt-2 text-5xl font-mono tracking-tight">
+            <div className="mt-2 text-4xl sm:text-5xl font-mono tracking-tight">
               {formatUsd(invoice.amountUsd)}
             </div>
           </div>
@@ -95,7 +97,7 @@ export default async function PublicInvoicePage({
 
       {/* State */}
       {isPaid ? (
-        <section className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-8">
+        <section className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-5 sm:p-6 md:p-8">
           <div className="flex items-center gap-2 text-sm font-mono text-emerald-600 dark:text-emerald-400">
             <span>●</span>
             <span>Settled</span>
@@ -112,7 +114,7 @@ export default async function PublicInvoicePage({
           )}
         </section>
       ) : Object.keys(deposits).length === 0 ? (
-        <section className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
+        <section className="rounded-lg border border-dashed border-border bg-card p-6 sm:p-8 text-center">
           <div className="text-sm font-mono text-muted-foreground">
             Payment routing is still being set up. Refresh in a moment.
           </div>

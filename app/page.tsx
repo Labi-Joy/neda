@@ -23,7 +23,7 @@ export default function LandingPage() {
               "linear-gradient(to bottom, color-mix(in oklch, var(--background) 25%, transparent) 0%, color-mix(in oklch, var(--background) 70%, transparent) 60%, var(--background) 100%)",
           }}
         />
-        <div className="relative z-10 mx-auto max-w-6xl px-6 pt-10 md:pt-20 pb-20 md:pb-28">
+        <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 pt-10 md:pt-20 pb-16 sm:pb-20 md:pb-28">
           <div className="grid md:grid-cols-12 gap-10 md:gap-14 items-center">
             <div className="md:col-span-6 lg:col-span-7">
               <div className="text-xs font-mono text-muted-foreground">
@@ -36,7 +36,7 @@ export default function LandingPage() {
                 Your US client pays USDC on Ethereum. You get USDC on NEAR.
                 Two minutes, no bridge, no gas, no bank.
               </p>
-              <div className="mt-10 flex items-center gap-5">
+              <div className="mt-8 md:mt-10 flex flex-wrap items-center gap-5">
                 <ShineButton href="/app" size="lg">
                   Create your first invoice
                 </ShineButton>
@@ -61,13 +61,13 @@ export default function LandingPage() {
 
       {/* MONEY FLOW */}
       <section id="how" className="border-t border-border">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <div className="grid md:grid-cols-12 gap-10 items-start">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20 md:py-24">
+          <div className="grid md:grid-cols-12 gap-8 md:gap-10 items-start">
             <div className="md:col-span-5">
               <div className="text-xs font-mono text-muted-foreground">
                 The flow
               </div>
-              <h2 className="heading-tight mt-4 text-4xl md:text-5xl leading-[1.02]">
+              <h2 className="heading-tight mt-4 text-3xl sm:text-4xl md:text-5xl leading-[1.05] md:leading-[1.02]">
                 One invoice. One link. Any chain in.
               </h2>
               <p className="mt-6 text-base text-muted-foreground leading-relaxed">
@@ -87,13 +87,13 @@ export default function LandingPage() {
 
       {/* WHY NEAR */}
       <section className="border-t border-border">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <div className="grid md:grid-cols-12 gap-10">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20 md:py-24">
+          <div className="grid md:grid-cols-12 gap-8 md:gap-10">
             <div className="md:col-span-5">
               <div className="text-xs font-mono text-muted-foreground">
                 Why NEAR specifically
               </div>
-              <h2 className="heading-tight mt-4 text-4xl md:text-5xl leading-[1.02]">
+              <h2 className="heading-tight mt-4 text-3xl sm:text-4xl md:text-5xl leading-[1.05] md:leading-[1.02]">
                 The one primitive that makes this possible.
               </h2>
             </div>
@@ -123,13 +123,13 @@ export default function LandingPage() {
 
       {/* SUSTAINABILITY */}
       <section className="border-t border-border">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <div className="grid md:grid-cols-12 gap-10">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20 md:py-24">
+          <div className="grid md:grid-cols-12 gap-8 md:gap-10">
             <div className="md:col-span-5">
               <div className="text-xs font-mono text-muted-foreground">
                 Why this lasts
               </div>
-              <h2 className="heading-tight mt-4 text-4xl md:text-5xl leading-[1.02]">
+              <h2 className="heading-tight mt-4 text-3xl sm:text-4xl md:text-5xl leading-[1.05] md:leading-[1.02]">
                 Built so the platform going away is not a catastrophe.
               </h2>
             </div>
@@ -155,12 +155,12 @@ export default function LandingPage() {
 
       {/* CTA */}
       <section className="border-t border-border">
-        <div className="mx-auto max-w-6xl px-6 py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20 md:py-24">
           <div className="max-w-3xl">
-            <h2 className="heading-tight text-4xl md:text-6xl leading-[1.02]">
+            <h2 className="heading-tight text-3xl sm:text-4xl md:text-6xl leading-[1.05] md:leading-[1.02]">
               Invoice an overseas client in the next two minutes.
             </h2>
-            <div className="mt-10 flex items-center gap-5">
+            <div className="mt-8 md:mt-10 flex flex-wrap items-center gap-5">
               <CtaSuccess href="/app" label="Create your first invoice" />
               <a
                 href="https://github.com/Labi-Joy/neda"
@@ -182,11 +182,13 @@ export default function LandingPage() {
 
 function WhyRow({ label, body }: { label: string; body: string }) {
   return (
-    <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 border-b border-border pb-6 last:border-0 last:pb-0">
-      <dt className="text-xs font-mono text-muted-foreground pt-1 whitespace-nowrap">
+    <div className="flex flex-col md:grid md:grid-cols-[auto_1fr] gap-2 md:gap-x-6 md:gap-y-1 border-b border-border pb-6 last:border-0 last:pb-0">
+      <dt className="text-xs font-mono text-muted-foreground md:pt-1 md:whitespace-nowrap">
         {label}
       </dt>
-      <dd className="text-foreground leading-relaxed">{body}</dd>
+      <dd className="text-foreground leading-relaxed text-sm sm:text-base">
+        {body}
+      </dd>
     </div>
   );
 }

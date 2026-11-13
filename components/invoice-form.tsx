@@ -125,7 +125,7 @@ export function InvoiceForm({
 
   return (
     <form onSubmit={submit} className="space-y-6">
-      <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+      <section className="rounded-lg border border-border bg-card p-5 sm:p-6 md:p-8">
         <div className="text-xs font-mono text-muted-foreground mb-5">
           Client
         </div>
@@ -176,7 +176,7 @@ export function InvoiceForm({
         </div>
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+      <section className="rounded-lg border border-border bg-card p-5 sm:p-6 md:p-8">
         <div className="flex items-center justify-between mb-5">
           <div className="text-xs font-mono text-muted-foreground">
             Line items
@@ -189,14 +189,14 @@ export function InvoiceForm({
             + add line
           </button>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-4 md:space-y-2">
           {lines.map((line, i) => (
             <div
               key={i}
-              className="grid grid-cols-12 gap-2 items-center"
+              className="border md:border-0 border-border rounded-md md:rounded-none p-3 md:p-0 grid grid-cols-12 gap-2 items-center"
             >
               <Input
-                className="col-span-7"
+                className="col-span-12 md:col-span-7"
                 placeholder="Description"
                 value={line.description}
                 onChange={(e) =>
@@ -204,7 +204,7 @@ export function InvoiceForm({
                 }
               />
               <Input
-                className="col-span-2"
+                className="col-span-5 md:col-span-2"
                 type="number"
                 min={1}
                 placeholder="Qty"
@@ -216,7 +216,7 @@ export function InvoiceForm({
                 }
               />
               <Input
-                className="col-span-2"
+                className="col-span-6 md:col-span-2"
                 type="number"
                 min={0}
                 step="0.01"
@@ -245,7 +245,7 @@ export function InvoiceForm({
         </div>
       </section>
 
-      <div className="flex justify-end gap-4 items-center">
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4 sm:items-center">
         {pending && (
           <div
             className="flex items-center gap-2 text-sm font-mono text-muted-foreground"
@@ -262,12 +262,17 @@ export function InvoiceForm({
             onClick={() =>
               onCancelHref ? router.push(onCancelHref) : history.back()
             }
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="text-sm text-muted-foreground hover:text-foreground text-center sm:text-left"
           >
             Cancel
           </button>
         )}
-        <ShineButton type="submit" size="lg" disabled={pending}>
+        <ShineButton
+          type="submit"
+          size="lg"
+          disabled={pending}
+          className="w-full sm:w-auto"
+        >
           {pending
             ? editMode
               ? "Saving changes"

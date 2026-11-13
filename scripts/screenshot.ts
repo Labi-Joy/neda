@@ -7,7 +7,7 @@ mkdirSync(OUT, { recursive: true });
 async function shoot(theme: "dark" | "light", path: string, name: string) {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
+    viewport: { width: 390, height: 844 }, // iPhone 14 Pro
     colorScheme: theme,
   });
   const page = await ctx.newPage();
@@ -31,7 +31,7 @@ async function shoot(theme: "dark" | "light", path: string, name: string) {
 async function shootAuthed(theme: "dark" | "light", path: string, name: string) {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
+    viewport: { width: 390, height: 844 }, // iPhone 14 Pro
     colorScheme: theme,
   });
   // Pre-set the auth cookie so the dashboard renders

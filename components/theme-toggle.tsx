@@ -16,10 +16,12 @@ export function ThemeToggle() {
       type="button"
       aria-label={`Switch to ${next} mode`}
       onClick={() => setTheme(next)}
-      className="inline-flex items-center gap-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors px-2 py-1 border border-border rounded"
+      className="inline-flex items-center gap-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors h-8 w-8 sm:w-auto sm:px-2.5 justify-center border border-border rounded-md"
     >
       <span aria-hidden="true">{current === "dark" ? "◐" : "◑"}</span>
-      <span>{current === "dark" ? "dark" : "light"}</span>
+      <span className="hidden sm:inline">
+        {current === "dark" ? "dark" : "light"}
+      </span>
     </button>
   );
 }

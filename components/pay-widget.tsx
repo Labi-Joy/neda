@@ -56,9 +56,11 @@ export function PayWidget({
   if (!row) return null;
 
   return (
-    <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+    <section className="rounded-lg border border-border bg-card p-5 sm:p-6 md:p-8">
       <div className="text-xs font-mono text-muted-foreground">Pay from</div>
-      <h2 className="heading-tight mt-2 text-2xl">Any chain. Same minute.</h2>
+      <h2 className="heading-tight mt-2 text-xl sm:text-2xl">
+        Any chain. Same minute.
+      </h2>
 
       {/* Chain tabs */}
       <div className="mt-6 flex flex-wrap gap-2">
@@ -86,18 +88,18 @@ export function PayWidget({
       </div>
 
       {/* Amount + address */}
-      <div className="mt-8 grid md:grid-cols-[auto_1fr] gap-8 items-start">
+      <div className="mt-6 sm:mt-8 grid md:grid-cols-[auto_1fr] gap-6 sm:gap-8 items-start">
         <div className="bg-white p-3 rounded-md mx-auto md:mx-0">
           <QRCodeSVG value={row.address} size={168} />
         </div>
-        <div className="space-y-5 min-w-0">
+        <div className="space-y-4 sm:space-y-5 min-w-0">
           <div>
             <div className="text-xs font-mono text-muted-foreground">
               Send exactly
             </div>
-            <div className="mt-2 text-3xl md:text-4xl font-mono tracking-tight">
+            <div className="mt-2 text-2xl sm:text-3xl md:text-4xl font-mono tracking-tight break-all">
               {row.amountIn}{" "}
-              <span className="text-muted-foreground text-2xl">
+              <span className="text-muted-foreground text-xl sm:text-2xl">
                 {meta.token}
               </span>
             </div>

@@ -31,7 +31,7 @@ export default async function InvoiceDetailPage({
   const isPaid = invoice.status === "paid";
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10 space-y-10">
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-10 space-y-8 md:space-y-10">
       <div>
         <Link
           href="/app"
@@ -41,12 +41,12 @@ export default async function InvoiceDetailPage({
         </Link>
       </div>
 
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <div className="text-xs font-mono text-muted-foreground">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-mono text-muted-foreground break-all">
             {invoice.id}
           </div>
-          <h1 className="heading-tight mt-2 text-3xl md:text-4xl">
+          <h1 className="heading-tight mt-2 text-2xl sm:text-3xl md:text-4xl break-words">
             {invoice.clientName}
           </h1>
         </div>
@@ -71,7 +71,7 @@ export default async function InvoiceDetailPage({
       <InvoiceStatusWatcher invoiceId={invoice.id} status={invoice.status} />
 
       {/* Payment link */}
-      <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+      <section className="rounded-lg border border-border bg-card p-5 sm:p-6 md:p-8">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs font-mono text-muted-foreground">
             Payment link
@@ -92,11 +92,12 @@ export default async function InvoiceDetailPage({
       </section>
 
       {/* Line items */}
-      <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+      <section className="rounded-lg border border-border bg-card p-5 sm:p-6 md:p-8">
         <div className="text-xs font-mono text-muted-foreground mb-5">
           Line items
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0">
+          <table className="w-full text-sm min-w-[480px]">
           <thead className="text-muted-foreground font-mono text-xs">
             <tr className="border-b border-border">
               <th className="text-left pb-3 font-normal">Description</th>
@@ -120,6 +121,7 @@ export default async function InvoiceDetailPage({
             ))}
           </tbody>
         </table>
+        </div>
       </section>
 
       {/* Settled block */}
@@ -148,7 +150,7 @@ export default async function InvoiceDetailPage({
 
       {/* Share CTA */}
       {!isPaid && (
-        <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+        <section className="rounded-lg border border-border bg-card p-5 sm:p-6 md:p-8">
           <div className="text-xs font-mono text-muted-foreground">
             Share with your client
           </div>
@@ -160,7 +162,7 @@ export default async function InvoiceDetailPage({
             addresses. They pay with the wallet they already have. You get
             USDC on NEAR.
           </p>
-          <div className="mt-6 flex items-center gap-3 flex-wrap">
+          <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3">
             <ShareButton
               url={publicUrl}
               title={`Invoice from ${nearId}`}
