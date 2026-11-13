@@ -129,13 +129,17 @@ export function CommandBar({ nearId }: { nearId: string }) {
     <div className="rounded-md border border-border bg-card overflow-hidden">
       <div className="flex items-center justify-between border-b border-border px-5 py-3 text-xs text-muted-foreground font-mono">
         <div className="flex items-center gap-2">
-          <span
-            className={`inline-block h-1.5 w-1.5 rounded-full ${
-              voice === "recording" || voice === "transcribing" || pending
-                ? "bg-primary animate-pulse"
-                : "bg-primary/60"
-            }`}
-          />
+          {voice === "recording" ? (
+            <VoiceBars />
+          ) : (
+            <span
+              className={`inline-block h-1.5 w-1.5 rounded-full ${
+                voice === "transcribing" || pending
+                  ? "bg-primary animate-pulse"
+                  : "bg-primary/60"
+              }`}
+            />
+          )}
           <span>{statusLabel}</span>
         </div>
         <span className="hidden sm:inline">type · speak · paste</span>
@@ -206,6 +210,21 @@ export function CommandBar({ nearId }: { nearId: string }) {
         </div>
       )}
     </div>
+  );
+}
+
+function VoiceBars() {
+  return (
+    <span
+      className="inline-flex items-end h-4 text-primary"
+      aria-hidden="true"
+    >
+      <span className="voice-bar" />
+      <span className="voice-bar" />
+      <span className="voice-bar" />
+      <span className="voice-bar" />
+      <span className="voice-bar" />
+    </span>
   );
 }
 

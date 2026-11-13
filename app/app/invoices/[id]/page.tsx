@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/copy-button";
 import { InvoiceStatusWatcher } from "@/components/invoice-status-watcher";
 import { ShineButton } from "@/components/shine-button";
+import { ShareButton } from "@/components/share-button";
 import type { LineItem } from "@/lib/types";
 
 function formatUsd(n: number): string {
@@ -49,12 +50,22 @@ export default async function InvoiceDetailPage({
             {invoice.clientName}
           </h1>
         </div>
-        <Badge
-          variant={isPaid ? "default" : "secondary"}
-          className="capitalize text-sm px-3 py-1 font-mono"
-        >
-          {invoice.status}
-        </Badge>
+        <div className="flex items-center gap-3">
+          {!isPaid && (
+            <Link
+              href={`/app/invoices/${invoice.id}/edit`}
+              className="text-xs font-mono text-muted-foreground hover:text-primary px-3 py-1.5 border border-border rounded-md transition-colors"
+            >
+              Edit
+            </Link>
+          )}
+          <Badge
+            variant={isPaid ? "default" : "secondary"}
+            className="capitalize text-sm px-3 py-1 font-mono"
+          >
+            {invoice.status}
+          </Badge>
+        </div>
       </div>
 
       <InvoiceStatusWatcher invoiceId={invoice.id} status={invoice.status} />
@@ -150,7 +161,17 @@ export default async function InvoiceDetailPage({
             USDC on NEAR.
           </p>
           <div className="mt-6 flex items-center gap-3 flex-wrap">
-            <ShineButton href={publicUrl} target="_blank" rel="noreferrer">
+            <ShareButton
+              url={publicUrl}
+              title={`Invoice from ${nearId}`}
+              text={`Pay ${formatUsd(invoice.amountUsd)} to ${nearId} — any chain, any wallet. Secure payment link via NEDA:`}
+            />
+            <ShineButton
+              href={publicUrl}
+              target="_blank"
+              rel="noreferrer"
+              variant="ghost"
+            >
               Preview link
             </ShineButton>
             <CopyButton value={publicUrl} variant="outline" label="Copy link" />

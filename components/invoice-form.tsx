@@ -20,18 +20,37 @@ const PROGRESS_STEPS = [
 
 type Line = { description: string; quantity: number; unitPriceUsd: number };
 
-export function InvoiceForm() {
-  const [clientName, setClientName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
+export type InvoiceFormInitial = {
+  id?: string;
+  clientName?: string;
+  clientEmail?: string | null;
+  dueDate?: string; // ISO
+  memo?: string | null;
+  lineItems?: Line[];
+};
+
+export function InvoiceForm({
+  initial,
+  onCancelHref,
+}: {
+  initial?: InvoiceFormInitial;
+  onCancelHref?: string;
+} = {}) {
+  const editMode = Boolean(initial?.id);
+  const [clientName, setClientName] = useState(initial?.clientName ?? "");
+  const [clientEmail, setClientEmail] = useState(initial?.clientEmail ?? "");
   const [dueDate, setDueDate] = useState(() => {
+    if (initial?.dueDate) return new Date(initial.dueDate).toISOString().slice(0, 10);
     const d = new Date();
     d.setDate(d.getDate() + 30);
     return d.toISOString().slice(0, 10);
   });
-  const [memo, setMemo] = useState("");
-  const [lines, setLines] = useState<Line[]>([
-    { description: "", quantity: 1, unitPriceUsd: 0 },
-  ]);
+  const [memo, setMemo] = useState(initial?.memo ?? "");
+  const [lines, setLines] = useState<Line[]>(
+    initial?.lineItems && initial.lineItems.length > 0
+      ? initial.lineItems
+      : [{ description: "", quantity: 1, unitPriceUsd: 0 }],
+  );
   const [pending, start] = useTransition();
   const [progressStep, setProgressStep] = useState(0);
   const router = useRouter();
@@ -78,8 +97,10 @@ export function InvoiceForm() {
     if (!dueDate) return toast.error("Due date required");
 
     start(async () => {
-      const res = await fetch("/api/invoices", {
-        method: "POST",
+      const url = editMode ? `/api/invoices/${initial!.id}` : "/api/invoices";
+      const method = editMode ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientName: clientName.trim(),
@@ -93,10 +114,10 @@ export function InvoiceForm() {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Could not create invoice");
+        toast.error(data.error ?? "Could not save invoice");
         return;
       }
-      toast.success("Invoice created");
+      toast.success(editMode ? "Invoice updated" : "Invoice created");
       router.push(`/app/invoices/${data.invoice.id}`);
       router.refresh();
     });
@@ -238,14 +259,22 @@ export function InvoiceForm() {
         {!pending && (
           <button
             type="button"
-            onClick={() => history.back()}
+            onClick={() =>
+              onCancelHref ? router.push(onCancelHref) : history.back()
+            }
             className="text-sm text-muted-foreground hover:text-foreground"
           >
             Cancel
           </button>
         )}
         <ShineButton type="submit" size="lg" disabled={pending}>
-          {pending ? "Creating invoice" : "Create invoice"}
+          {pending
+            ? editMode
+              ? "Saving changes"
+              : "Creating invoice"
+            : editMode
+              ? "Save changes"
+              : "Create invoice"}
         </ShineButton>
       </div>
     </form>
