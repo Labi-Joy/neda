@@ -3,10 +3,9 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentNearId } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/copy-button";
 import { InvoiceStatusWatcher } from "@/components/invoice-status-watcher";
+import { ShineButton } from "@/components/shine-button";
 import type { LineItem } from "@/lib/types";
 
 function formatUsd(n: number): string {
@@ -28,41 +27,48 @@ export default async function InvoiceDetailPage({
   const lines: LineItem[] = JSON.parse(invoice.lineItems);
   const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const publicUrl = `${base}/i/${invoice.id}`;
+  const isPaid = invoice.status === "paid";
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10 space-y-6">
+    <div className="mx-auto max-w-4xl px-6 py-10 space-y-10">
       <div>
         <Link
           href="/app"
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="text-xs font-mono text-muted-foreground hover:text-foreground"
         >
           ← Back to invoices
         </Link>
       </div>
 
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {invoice.clientName}
-          </h1>
-          <div className="mt-1 text-sm text-muted-foreground font-mono">
+          <div className="text-xs font-mono text-muted-foreground">
             {invoice.id}
           </div>
+          <h1 className="heading-tight mt-2 text-3xl md:text-4xl">
+            {invoice.clientName}
+          </h1>
         </div>
-        <Badge variant={invoice.status === "paid" ? "default" : "secondary"} className="capitalize text-base px-3 py-1">
+        <Badge
+          variant={isPaid ? "default" : "secondary"}
+          className="capitalize text-sm px-3 py-1 font-mono"
+        >
           {invoice.status}
         </Badge>
       </div>
 
       <InvoiceStatusWatcher invoiceId={invoice.id} status={invoice.status} />
 
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-sm text-muted-foreground">Payment link</div>
+      {/* Payment link */}
+      <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-xs font-mono text-muted-foreground">
+            Payment link
+          </div>
           <CopyButton value={publicUrl} />
         </div>
         <div className="font-mono text-sm break-all">{publicUrl}</div>
-        <div className="mt-6 pt-6 border-t border-border grid grid-cols-2 gap-4 text-sm">
+        <div className="mt-8 pt-6 border-t border-border grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
           <Detail label="Amount">{formatUsd(invoice.amountUsd)}</Detail>
           <Detail label="Due">
             {invoice.dueDate.toISOString().slice(0, 10)}
@@ -72,83 +78,100 @@ export default async function InvoiceDetailPage({
           )}
           {invoice.memo && <Detail label="Memo">{invoice.memo}</Detail>}
         </div>
-      </Card>
+      </section>
 
-      <Card className="p-6">
-        <div className="text-sm font-medium mb-3">Line items</div>
+      {/* Line items */}
+      <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+        <div className="text-xs font-mono text-muted-foreground mb-5">
+          Line items
+        </div>
         <table className="w-full text-sm">
-          <thead className="text-muted-foreground">
+          <thead className="text-muted-foreground font-mono text-xs">
             <tr className="border-b border-border">
-              <th className="text-left pb-2">Description</th>
-              <th className="text-right pb-2 pr-6">Qty</th>
-              <th className="text-right pb-2 pr-6">Unit</th>
-              <th className="text-right pb-2">Subtotal</th>
+              <th className="text-left pb-3 font-normal">Description</th>
+              <th className="text-right pb-3 pr-6 font-normal">Qty</th>
+              <th className="text-right pb-3 pr-6 font-normal">Unit</th>
+              <th className="text-right pb-3 font-normal">Subtotal</th>
             </tr>
           </thead>
           <tbody>
             {lines.map((l, i) => (
               <tr key={i} className="border-b border-border last:border-0">
-                <td className="py-2">{l.description}</td>
-                <td className="py-2 text-right pr-6">{l.quantity}</td>
-                <td className="py-2 text-right pr-6 font-mono">
+                <td className="py-3">{l.description}</td>
+                <td className="py-3 text-right pr-6 font-mono">{l.quantity}</td>
+                <td className="py-3 text-right pr-6 font-mono">
                   {formatUsd(l.unitPriceUsd)}
                 </td>
-                <td className="py-2 text-right font-mono">
+                <td className="py-3 text-right font-mono">
                   {formatUsd(l.quantity * l.unitPriceUsd)}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </Card>
+      </section>
 
-      {invoice.status === "paid" && invoice.txHash && (
-        <Card className="p-6 border-emerald-500/30 bg-emerald-500/5">
-          <div className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-            Settled
+      {/* Settled block */}
+      {isPaid && invoice.txHash && (
+        <section className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-6 md:p-8">
+          <div className="flex items-center gap-2 text-sm font-mono text-emerald-600 dark:text-emerald-400">
+            <span>●</span>
+            <span>Settled</span>
           </div>
-          <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
             <Detail label="Paid at">
               {invoice.paidAt?.toISOString().slice(0, 16).replace("T", " ")}
             </Detail>
             <Detail label="Received">
-              {invoice.receivedAmount?.toFixed(2)} {invoice.receivedAsset ?? "USDC"}
+              {invoice.receivedAmount?.toFixed(2)}{" "}
+              {invoice.receivedAsset ?? "USDC"}
             </Detail>
             <Detail label="Tx hash">
-              <span className="font-mono text-xs break-all">{invoice.txHash}</span>
+              <span className="font-mono text-xs break-all">
+                {invoice.txHash}
+              </span>
             </Detail>
           </div>
-        </Card>
+        </section>
       )}
 
-      {invoice.status !== "paid" && (
-        <Card className="p-6">
-          <div className="text-sm font-medium mb-2">Share with your client</div>
-          <p className="text-sm text-muted-foreground mb-4">
-            They&apos;ll see one page with a QR code and per-chain addresses.
-            They pay with the wallet they already have. You get USDC on NEAR.
-          </p>
-          <div className="flex gap-3">
-            <Button asChild variant="outline">
-              <a href={publicUrl} target="_blank" rel="noreferrer">
-                Preview link
-              </a>
-            </Button>
-            <CopyButton value={publicUrl} variant="default" label="Copy link" />
+      {/* Share CTA */}
+      {!isPaid && (
+        <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+          <div className="text-xs font-mono text-muted-foreground">
+            Share with your client
           </div>
-        </Card>
+          <h2 className="heading-tight mt-2 text-2xl">
+            One link. Any chain. Any wallet.
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground max-w-prose leading-relaxed">
+            Your client opens the link and sees a QR code with per-chain
+            addresses. They pay with the wallet they already have. You get
+            USDC on NEAR.
+          </p>
+          <div className="mt-6 flex items-center gap-3 flex-wrap">
+            <ShineButton href={publicUrl} target="_blank" rel="noreferrer">
+              Preview link
+            </ShineButton>
+            <CopyButton value={publicUrl} variant="outline" label="Copy link" />
+          </div>
+        </section>
       )}
     </div>
   );
 }
 
-function Detail({ label, children }: { label: string; children: React.ReactNode }) {
+function Detail({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <div className="text-xs uppercase text-muted-foreground tracking-wide">
-        {label}
-      </div>
-      <div className="mt-1">{children}</div>
+      <div className="text-xs font-mono text-muted-foreground">{label}</div>
+      <div className="mt-1.5">{children}</div>
     </div>
   );
 }

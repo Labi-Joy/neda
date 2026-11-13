@@ -2,9 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+
+const EXAMPLES = [
+  "create invoice for Acme Co $500 due Nov 30",
+  "show unpaid invoices",
+  "export last month as csv",
+];
 
 export function CommandBar({ nearId }: { nearId: string }) {
   const [value, setValue] = useState("");
@@ -39,24 +43,54 @@ export function CommandBar({ nearId }: { nearId: string }) {
   }
 
   return (
-    <div className="rounded-lg border border-border bg-muted/20 p-4">
-      <form onSubmit={submit} className="flex items-center gap-2">
-        <div className="text-muted-foreground font-mono text-sm">&gt;</div>
-        <Input
+    <div className="rounded-md border border-border bg-card overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border px-5 py-3 text-xs text-muted-foreground font-mono">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+          <span>command bar — neda ai</span>
+        </div>
+        <span className="hidden sm:inline">type or paste a command</span>
+      </div>
+      <form
+        onSubmit={submit}
+        className="flex items-center gap-3 px-5 py-4 font-mono text-[15px] md:text-base"
+      >
+        <span className="text-primary select-none">&gt;</span>
+        <input
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="create invoice for Acme Co $500 due Nov 30 · show unpaid · export last month"
-          className="flex-1 bg-transparent border-0 focus-visible:ring-0 shadow-none px-0 font-mono text-sm"
+          placeholder="create invoice for Acme Co $500 due Nov 30"
+          className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground/60"
           disabled={pending}
+          aria-label="Command bar input"
         />
-        <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "…" : "Run"}
-        </Button>
+        <button
+          type="submit"
+          disabled={pending || !value.trim()}
+          className="text-xs font-mono px-3 py-1.5 rounded-md border border-border hover:border-primary/60 hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {pending ? "…" : "run ↵"}
+        </button>
       </form>
       {reply && (
-        <div className="mt-3 text-sm text-muted-foreground font-mono whitespace-pre-wrap">
-          {reply}
+        <div className="px-5 pb-4 flex items-start gap-3 text-sm text-muted-foreground font-mono whitespace-pre-wrap">
+          <span className="text-primary select-none">✓</span>
+          <span className="flex-1">{reply}</span>
+        </div>
+      )}
+      {!reply && !pending && !value && (
+        <div className="px-5 pb-4 flex flex-wrap gap-2">
+          {EXAMPLES.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => setValue(e)}
+              className="text-xs font-mono px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+            >
+              {e}
+            </button>
+          ))}
         </div>
       )}
     </div>

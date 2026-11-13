@@ -4,9 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
+import { ShineButton } from "@/components/shine-button";
 import { toast } from "sonner";
 
 type Line = { description: string; quantity: number; unitPriceUsd: number };
@@ -29,15 +27,22 @@ export function InvoiceForm() {
   const total = lines.reduce((s, l) => s + l.quantity * l.unitPriceUsd, 0);
 
   function updateLine(i: number, patch: Partial<Line>) {
-    setLines((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+    setLines((rows) =>
+      rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)),
+    );
   }
 
   function removeLine(i: number) {
-    setLines((rows) => (rows.length === 1 ? rows : rows.filter((_, idx) => idx !== i)));
+    setLines((rows) =>
+      rows.length === 1 ? rows : rows.filter((_, idx) => idx !== i),
+    );
   }
 
   function addLine() {
-    setLines((rows) => [...rows, { description: "", quantity: 1, unitPriceUsd: 0 }]);
+    setLines((rows) => [
+      ...rows,
+      { description: "", quantity: 1, unitPriceUsd: 0 },
+    ]);
   }
 
   function submit(e: React.FormEvent) {
@@ -73,10 +78,13 @@ export function InvoiceForm() {
 
   return (
     <form onSubmit={submit} className="space-y-6">
-      <Card className="p-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+        <div className="text-xs font-mono text-muted-foreground mb-5">
+          Client
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-2">
-            <Label htmlFor="clientName">Client name</Label>
+            <Label htmlFor="clientName">Name</Label>
             <Input
               id="clientName"
               required
@@ -86,7 +94,9 @@ export function InvoiceForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="clientEmail">Client email (optional)</Label>
+            <Label htmlFor="clientEmail" className="text-muted-foreground">
+              Email <span className="text-xs">(optional)</span>
+            </Label>
             <Input
               id="clientEmail"
               type="email"
@@ -95,8 +105,6 @@ export function InvoiceForm() {
               placeholder="billing@acme.com"
             />
           </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="dueDate">Due date</Label>
             <Input
@@ -108,7 +116,9 @@ export function InvoiceForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="memo">Memo (optional)</Label>
+            <Label htmlFor="memo" className="text-muted-foreground">
+              Memo <span className="text-xs">(optional)</span>
+            </Label>
             <Input
               id="memo"
               value={memo}
@@ -117,23 +127,34 @@ export function InvoiceForm() {
             />
           </div>
         </div>
-      </Card>
+      </section>
 
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-3">
-          <Label>Line items</Label>
-          <Button type="button" variant="ghost" size="sm" onClick={addLine}>
-            + Add line
-          </Button>
+      <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+        <div className="flex items-center justify-between mb-5">
+          <div className="text-xs font-mono text-muted-foreground">
+            Line items
+          </div>
+          <button
+            type="button"
+            onClick={addLine}
+            className="text-xs font-mono text-muted-foreground hover:text-primary transition-colors"
+          >
+            + add line
+          </button>
         </div>
         <div className="space-y-2">
           {lines.map((line, i) => (
-            <div key={i} className="grid grid-cols-12 gap-2 items-center">
+            <div
+              key={i}
+              className="grid grid-cols-12 gap-2 items-center"
+            >
               <Input
                 className="col-span-7"
                 placeholder="Description"
                 value={line.description}
-                onChange={(e) => updateLine(i, { description: e.target.value })}
+                onChange={(e) =>
+                  updateLine(i, { description: e.target.value })
+                }
               />
               <Input
                 className="col-span-2"
@@ -142,7 +163,9 @@ export function InvoiceForm() {
                 placeholder="Qty"
                 value={line.quantity}
                 onChange={(e) =>
-                  updateLine(i, { quantity: Math.max(1, Number(e.target.value || 0)) })
+                  updateLine(i, {
+                    quantity: Math.max(1, Number(e.target.value || 0)),
+                  })
                 }
               />
               <Input
@@ -153,37 +176,39 @@ export function InvoiceForm() {
                 placeholder="Price"
                 value={line.unitPriceUsd || ""}
                 onChange={(e) =>
-                  updateLine(i, { unitPriceUsd: Number(e.target.value || 0) })
+                  updateLine(i, {
+                    unitPriceUsd: Number(e.target.value || 0),
+                  })
                 }
               />
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="col-span-1"
+                className="col-span-1 text-muted-foreground hover:text-destructive text-sm"
                 onClick={() => removeLine(i)}
                 aria-label="Remove line"
               >
                 ✕
-              </Button>
+              </button>
             </div>
           ))}
         </div>
-        <div className="mt-6 flex justify-end items-center gap-3">
-          <span className="text-sm text-muted-foreground">Total</span>
-          <span className="text-xl font-semibold font-mono">
-            ${total.toFixed(2)}
-          </span>
+        <div className="mt-8 pt-5 border-t border-border flex items-baseline justify-between">
+          <span className="text-sm font-mono text-muted-foreground">Total</span>
+          <span className="text-3xl font-mono">${total.toFixed(2)}</span>
         </div>
-      </Card>
+      </section>
 
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="ghost" onClick={() => history.back()}>
+      <div className="flex justify-end gap-4 items-center">
+        <button
+          type="button"
+          onClick={() => history.back()}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
           Cancel
-        </Button>
-        <Button type="submit" disabled={pending}>
-          {pending ? "Creating…" : "Create invoice"}
-        </Button>
+        </button>
+        <ShineButton type="submit" size="lg" disabled={pending}>
+          {pending ? "Creating invoice…" : "Create invoice"}
+        </ShineButton>
       </div>
     </form>
   );

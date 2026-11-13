@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { PayWidget } from "@/components/pay-widget";
 import type { LineItem } from "@/lib/types";
 
@@ -29,41 +29,45 @@ export default async function PublicInvoicePage({
   const isPaid = invoice.status === "paid";
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10 space-y-6">
+    <div className="mx-auto max-w-2xl px-6 py-10 space-y-8">
+      {/* Top bar */}
       <div className="flex items-center justify-between">
-        <a
+        <Link
           href="/"
-          className="font-bold tracking-widest text-lg text-muted-foreground"
+          className="font-bold tracking-widest text-lg text-muted-foreground hover:text-foreground"
         >
           NEDA
-        </a>
-        <Badge variant={isPaid ? "default" : "secondary"} className="capitalize">
+        </Link>
+        <Badge
+          variant={isPaid ? "default" : "secondary"}
+          className="capitalize font-mono text-xs px-2.5 py-1"
+        >
           {invoice.status}
         </Badge>
       </div>
 
+      {/* From */}
       <div>
-        <div className="text-xs uppercase text-muted-foreground tracking-wider">
+        <div className="text-xs font-mono text-muted-foreground">
           Invoice from
         </div>
-        <div className="mt-1 text-lg font-medium font-mono">
-          {invoice.ownerNearId}
-        </div>
+        <div className="mt-2 text-xl font-mono">{invoice.ownerNearId}</div>
       </div>
 
-      <Card className="p-8">
+      {/* Amount card */}
+      <section className="rounded-lg border border-border bg-card p-8">
         <div className="flex items-baseline justify-between">
           <div>
-            <div className="text-sm text-muted-foreground">Amount due</div>
-            <div className="mt-1 text-4xl font-semibold tracking-tight font-mono">
+            <div className="text-xs font-mono text-muted-foreground">
+              Amount due
+            </div>
+            <div className="mt-2 text-5xl font-mono tracking-tight">
               {formatUsd(invoice.amountUsd)}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-xs uppercase text-muted-foreground tracking-wide">
-              Due
-            </div>
-            <div className="mt-1 text-sm">
+            <div className="text-xs font-mono text-muted-foreground">Due</div>
+            <div className="mt-2 text-sm font-mono">
               {invoice.dueDate.toISOString().slice(0, 10)}
             </div>
           </div>
@@ -71,19 +75,17 @@ export default async function PublicInvoicePage({
 
         {invoice.memo && (
           <div className="mt-6 pt-6 border-t border-border">
-            <div className="text-xs uppercase text-muted-foreground tracking-wide">
-              Memo
-            </div>
-            <div className="mt-1 text-sm">{invoice.memo}</div>
+            <div className="text-xs font-mono text-muted-foreground">Memo</div>
+            <div className="mt-2 text-sm">{invoice.memo}</div>
           </div>
         )}
 
         <div className="mt-6 pt-6 border-t border-border space-y-2">
           {lines.map((l, i) => (
             <div key={i} className="flex justify-between text-sm">
-              <div className="text-muted-foreground">
-                {l.description}
-                <span className="text-xs ml-2">
+              <div>
+                <span>{l.description}</span>
+                <span className="ml-3 text-xs font-mono text-muted-foreground">
                   {l.quantity} × {formatUsd(l.unitPriceUsd)}
                 </span>
               </div>
@@ -93,35 +95,39 @@ export default async function PublicInvoicePage({
             </div>
           ))}
         </div>
-      </Card>
+      </section>
 
+      {/* State */}
       {isPaid ? (
-        <Card className="p-8 border-emerald-500/30 bg-emerald-500/5 text-center">
-          <div className="text-emerald-700 dark:text-emerald-400 font-medium">
-            This invoice is paid
+        <section className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-8">
+          <div className="flex items-center gap-2 text-sm font-mono text-emerald-600 dark:text-emerald-400">
+            <span>●</span>
+            <span>Settled</span>
           </div>
-          <div className="mt-2 text-sm text-muted-foreground">
+          <div className="mt-4 text-sm text-muted-foreground">
             Received {invoice.receivedAmount?.toFixed(2)}{" "}
-            {invoice.receivedAsset ?? "USDC"} on{" "}
+            {invoice.receivedAsset ?? "USDC"} on NEAR,{" "}
             {invoice.paidAt?.toISOString().slice(0, 10)}
           </div>
           {invoice.txHash && (
-            <div className="mt-3 text-xs font-mono break-all text-muted-foreground">
+            <div className="mt-4 text-xs font-mono break-all text-muted-foreground">
               tx: {invoice.txHash}
             </div>
           )}
-        </Card>
+        </section>
       ) : Object.keys(deposits).length === 0 ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
-          Payment routing is still being set up. Refresh in a moment.
-        </Card>
+        <section className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
+          <div className="text-sm font-mono text-muted-foreground">
+            Payment routing is still being set up. Refresh in a moment.
+          </div>
+        </section>
       ) : (
         <PayWidget invoiceId={invoice.id} deposits={deposits} />
       )}
 
-      <p className="text-center text-xs text-muted-foreground">
-        Paid with cross-chain settlement via NEAR Intents. Any token on any
-        supported chain - your freelancer receives USDC on NEAR.
+      <p className="text-center text-xs font-mono text-muted-foreground max-w-md mx-auto leading-relaxed">
+        Cross-chain settlement via NEAR Intents. Any token on any supported
+        chain. The freelancer receives USDC on NEAR.
       </p>
     </div>
   );

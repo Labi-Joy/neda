@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/copy-button";
 
 type DepositRow = { address: string; amountIn: string; correlationId: string };
@@ -58,60 +56,83 @@ export function PayWidget({
   if (!row) return null;
 
   return (
-    <Card className="p-8">
-      <div className="text-sm font-medium">Pay from any chain</div>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Pick a chain and send the exact amount shown. NEAR Intents will route it
-        to the freelancer as USDC on NEAR within minutes.
-      </p>
+    <section className="rounded-lg border border-border bg-card p-6 md:p-8">
+      <div className="text-xs font-mono text-muted-foreground">Pay from</div>
+      <h2 className="heading-tight mt-2 text-2xl">Any chain. Same minute.</h2>
 
-      <div className="mt-5 flex flex-wrap gap-2">
+      {/* Chain tabs */}
+      <div className="mt-6 flex flex-wrap gap-2">
         {chainIds.map((id) => {
           const m = CHAIN_META[id] ?? { label: id };
           const active = id === selected;
           return (
-            <Button
+            <button
               key={id}
               type="button"
-              size="sm"
-              variant={active ? "default" : "outline"}
               onClick={() => setSelected(id)}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono border transition-colors ${
+                active
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
+              }`}
             >
+              {active && (
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary-foreground/70" />
+              )}
               {m.label}
-            </Button>
+            </button>
           );
         })}
       </div>
 
-      <div className="mt-6 grid md:grid-cols-[auto_1fr] gap-6 items-start">
-        <div className="bg-white p-3 rounded-lg mx-auto md:mx-0">
-          <QRCodeSVG value={row.address} size={160} />
+      {/* Amount + address */}
+      <div className="mt-8 grid md:grid-cols-[auto_1fr] gap-8 items-start">
+        <div className="bg-white p-3 rounded-md mx-auto md:mx-0">
+          <QRCodeSVG value={row.address} size={168} />
         </div>
-        <div className="space-y-3 min-w-0">
+        <div className="space-y-5 min-w-0">
           <div>
-            <div className="text-xs uppercase text-muted-foreground tracking-wide">
-              Send this amount
+            <div className="text-xs font-mono text-muted-foreground">
+              Send exactly
             </div>
-            <div className="mt-1 text-2xl font-mono font-semibold">
-              {row.amountIn} {meta.token}
+            <div className="mt-2 text-3xl md:text-4xl font-mono tracking-tight">
+              {row.amountIn}{" "}
+              <span className="text-muted-foreground text-2xl">
+                {meta.token}
+              </span>
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5">on {meta.label}</div>
+            <div className="text-xs font-mono text-muted-foreground mt-1">
+              on {meta.label}
+            </div>
           </div>
           <div>
-            <div className="text-xs uppercase text-muted-foreground tracking-wide">
+            <div className="text-xs font-mono text-muted-foreground">
               To this address
             </div>
-            <div className="mt-1 font-mono text-sm break-all">{row.address}</div>
+            <div className="mt-2 font-mono text-sm break-all">
+              {row.address}
+            </div>
           </div>
-          <div className="flex gap-2 pt-1">
-            <CopyButton value={row.address} variant="default" label="Copy address" />
-            <CopyButton value={row.amountIn} variant="outline" label="Copy amount" />
-          </div>
-          <div className="text-xs text-muted-foreground pt-3 border-t border-border">
-            Watching for payment. Status updates automatically.
+          <div className="flex gap-2 flex-wrap">
+            <CopyButton
+              value={row.address}
+              variant="default"
+              label="Copy address"
+            />
+            <CopyButton
+              value={row.amountIn}
+              variant="outline"
+              label="Copy amount"
+            />
           </div>
         </div>
       </div>
-    </Card>
+
+      {/* Watcher status */}
+      <div className="mt-8 pt-5 border-t border-border flex items-center gap-2 text-xs font-mono text-muted-foreground">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+        <span>Watching for payment. Status updates automatically.</span>
+      </div>
+    </section>
   );
 }
