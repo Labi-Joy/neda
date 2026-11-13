@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Invoice {
+  id               String    @id
+  ownerNearId      String
+  clientName       String
+  clientEmail      String?
+  amountUsd        Float
+  dueDate          DateTime
+  memo             String?
+  lineItems        String    // JSON string
+  status           String    @default("pending") // pending, paid, expired, refunded
+  correlationId    String?
+  depositAddresses String?   // JSON string: { near, eth, sol, btc, ... }
+  destinationAsset String?
+  paidAt           DateTime?
+  txHash           String?
+  receivedAmount   Float?
+  receivedAsset    String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([ownerNearId])
+  @@index([status])
+}
