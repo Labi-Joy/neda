@@ -33,7 +33,7 @@ This is a word-for-word match to the `realworld` track's core prompt. Differenti
 8. **Landing page** - hero with Lagos/US-client narrative, three-step flow illustration, "launch app" CTA.
 
 ### Differentiation (second half of Day 2)
-9. **AI Command Bar** - persistent input on dashboard. Natural language: `create invoice for Acme Co $500 due Nov 30`, `show me unpaid invoices from October`, `export last quarter as CSV`. Backed by Claude API with tool-calling mapped to our actions.
+9. **AI Command Bar** - persistent input on dashboard. Natural language: `create invoice for Acme Co $500 due Nov 30`, `show me unpaid invoices from October`, `export last quarter as CSV`. Backed by NEAR AI (`zai-org/GLM-5.1-FP8` via the OpenAI-compatible endpoint) with tool-calling mapped to our actions.
 10. **Policy YAML (stretch)** - freelancer can set `on-paid` rules (e.g., `40% to savings, 60% stays liquid`). For MVP, savings is a stub tagged "deposited to Rhea pool (demo)". Real Rhea integration only if time.
 
 ### Explicit cuts (do not build)
@@ -55,7 +55,8 @@ This is a word-for-word match to the `realworld` track's core prompt. Differenti
 - **UI:** shadcn/ui on Tailwind 4. Install via shadcn skill.
 - **Auth / NEAR:** `near-wallet-selector` + `near-api-js`.
 - **Intents:** `@defuse-protocol/one-click-sdk-typescript`.
-- **AI agent:** `@anthropic-ai/sdk` (Claude Sonnet 4.6) with tool-calling. Server-side route, client streams.
+- **AI agent:** `openai` SDK pointed at `https://cloud-api.near.ai/v1` (NEAR AI) running `zai-org/GLM-5.1-FP8` with tool-calling. Server-side route, client streams.
+- **Voice input:** `openai/whisper-large-v3` on the same NEAR AI endpoint via `/api/transcribe`.
 - **DB:** SQLite via Prisma for dev + Vercel Postgres on prod (or Vercel KV if faster). Decide at scaffold time.
 - **Deploy:** Vercel.
 - **Testing:** Playwright (webapp-testing skill) for one happy-path smoke only.
@@ -71,7 +72,8 @@ This is a word-for-word match to the `realworld` track's core prompt. Differenti
 /api/invoices                 CRUD
 /api/invoices/[id]/sync       force status refresh from 1Click
 /api/intents/quote            server-side wrapper around 1Click (hides JWT)
-/api/agent                    Claude tool-calling endpoint
+/api/agent                    NEAR AI tool-calling endpoint
+/api/transcribe               NEAR AI Whisper endpoint
 /api/export                   CSV export
 ```
 
@@ -124,7 +126,7 @@ tools: [
   { name: 'resend_invoice', input: { id, channel: 'email'|'copy' } },
 ]
 ```
-Server route takes a natural-language message, loops Claude tool-calling, returns the rendered result + any side effects.
+Server route takes a natural-language message, loops NEAR AI tool-calling, returns the rendered result + any side effects.
 
 ## 5. Success criteria (what makes this a top-3 realworld submission)
 
@@ -150,7 +152,7 @@ Strongly preferred:
 | NEAR wallet selector friction on first use | Add a "no wallet? just use a named account" stub that validates format and stores it. Full sign-in optional. |
 | Rhea SDK undocumented in time | Stub yield deposit as DB-only state. Mark as "demo" in README. |
 | Vercel cold starts eat polling budget | Use client-side `setInterval` polling against our own API, not direct to 1Click. Cache aggressively. |
-| Claude API key leak | Server-only route, env var, never in client bundle. |
+| NEAR AI API key leak | Server-only route, env var, never in client bundle. |
 
 ## 7. Deliverables for submission (per HACKATHON.md §Procedure)
 
