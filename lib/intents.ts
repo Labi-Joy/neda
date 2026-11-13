@@ -119,10 +119,29 @@ async function getQuoteForOrigin(
   return OneClickService.getQuote(quoteRequest);
 }
 
-export async function getOrderStatus(correlationId: string) {
+export type OneClickStatus = {
+  status: string;
+  updatedAt?: string;
+  correlationId?: string;
+  swapDetails?: {
+    depositedAmount?: string;
+    depositedAmountFormatted?: string;
+    amountOut?: string;
+    amountOutFormatted?: string;
+    refundedAmount?: string;
+    refundReason?: string | null;
+    originChainTxHashes?: string[];
+    destinationChainTxHashes?: string[];
+    nearTxHashes?: string[];
+  };
+};
+
+export async function getOrderStatusByDeposit(
+  depositAddress: string,
+): Promise<OneClickStatus | null> {
   try {
     const res = await fetch(
-      `${OpenAPI.BASE}/v0/quotes?filter[correlationId]=${encodeURIComponent(correlationId)}`,
+      `${OpenAPI.BASE}/v0/status?depositAddress=${encodeURIComponent(depositAddress)}`,
       {
         headers: OpenAPI.TOKEN
           ? { Authorization: `Bearer ${OpenAPI.TOKEN}` }
@@ -130,7 +149,7 @@ export async function getOrderStatus(correlationId: string) {
       },
     );
     if (!res.ok) return null;
-    return (await res.json()) as unknown;
+    return (await res.json()) as OneClickStatus;
   } catch {
     return null;
   }

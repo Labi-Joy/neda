@@ -1,25 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getOrderStatus } from "@/lib/intents";
+import { getOrderStatusByDeposit, type OneClickStatus } from "@/lib/intents";
 
-type IntentOrderRow = {
-  attributes?: {
-    status?: string;
-    destinationAmount?: string;
-    destinationAsset?: string;
-    originAsset?: string;
-    executionTransactionHash?: string;
-    settledAt?: string;
-  };
-};
-
-type DepositMap = Record<string, { address: string; amountIn: string; correlationId: string }>;
+type DepositMap = Record<
+  string,
+  { address: string; amountIn: string; correlationId: string }
+>;
 
 function parseDeposits(raw: string | null): DepositMap {
   if (!raw) return {};
   try {
     const parsed = JSON.parse(raw);
-    // Backwards compat: old shape was Record<string, string> (chain -> address)
     const first = Object.values(parsed)[0];
     if (typeof first === "string") return {};
     return parsed as DepositMap;
@@ -28,14 +19,27 @@ function parseDeposits(raw: string | null): DepositMap {
   }
 }
 
+// 1Click status strings we treat as "paid".
 function isSuccessStatus(s: string | undefined): boolean {
-  const upstream = (s || "").toLowerCase();
+  const upstream = (s || "").toUpperCase();
   return (
-    upstream === "success" ||
-    upstream === "succeeded" ||
-    upstream === "settled" ||
-    upstream === "paid"
+    upstream === "SUCCESS" ||
+    upstream === "COMPLETED" ||
+    upstream === "SETTLED" ||
+    upstream === "PAID"
   );
+}
+
+function isRefunded(s: string | undefined): boolean {
+  const u = (s || "").toUpperCase();
+  return u === "REFUNDED" || u === "FAILED_REFUNDED";
+}
+
+function pickTxHash(d: OneClickStatus["swapDetails"]): string | null {
+  if (!d) return null;
+  // NEAR destination tx is the clearest receipt of USDC landing on NEAR
+  const near = d.destinationChainTxHashes?.[0] || d.nearTxHashes?.[0];
+  return near ?? d.originChainTxHashes?.[0] ?? null;
 }
 
 export async function POST(
@@ -44,52 +48,68 @@ export async function POST(
 ) {
   const { id } = await params;
   const invoice = await db.invoice.findUnique({ where: { id } });
-  if (!invoice) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!invoice) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
   if (invoice.status === "paid") {
     return NextResponse.json({ invoice, note: "already paid" });
   }
 
-  // Collect every correlationId to poll (primary + per-chain)
   const deposits = parseDeposits(invoice.depositAddresses);
-  const correlationIds = new Set<string>();
-  if (invoice.correlationId) correlationIds.add(invoice.correlationId);
+  const addresses = new Set<string>();
   for (const d of Object.values(deposits)) {
-    if (d.correlationId) correlationIds.add(d.correlationId);
+    if (d.address) addresses.add(d.address);
   }
 
-  if (correlationIds.size === 0) {
-    return NextResponse.json({ invoice, note: "no correlationId" });
+  if (addresses.size === 0) {
+    return NextResponse.json({ invoice, note: "no deposit addresses" });
   }
 
-  // Poll all in parallel; first success wins.
+  // Poll every per-chain deposit address in parallel.
   const results = await Promise.all(
-    [...correlationIds].map(async (cid) => {
-      const res = (await getOrderStatus(cid)) as { data?: IntentOrderRow[] } | null;
-      return { cid, row: res?.data?.[0]?.attributes };
+    [...addresses].map(async (address) => {
+      const status = await getOrderStatusByDeposit(address);
+      return { address, status };
     }),
   );
 
-  const winner = results.find((r) => isSuccessStatus(r.row?.status));
-  if (!winner || !winner.row) {
-    return NextResponse.json({
-      invoice,
-      note: "awaiting settlement",
-      upstream: results.map((r) => ({ cid: r.cid, status: r.row?.status ?? null })),
+  const winner = results.find((r) => isSuccessStatus(r.status?.status));
+  if (winner && winner.status) {
+    const d = winner.status.swapDetails;
+    const receivedMicro = d?.amountOut ? Number(d.amountOut) : null;
+    const updated = await db.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: "paid",
+        paidAt: winner.status.updatedAt
+          ? new Date(winner.status.updatedAt)
+          : new Date(),
+        txHash: pickTxHash(d),
+        receivedAmount: receivedMicro
+          ? receivedMicro / 1_000_000
+          : invoice.amountUsd,
+        receivedAsset: "USDC",
+      },
     });
+    return NextResponse.json({ invoice: updated });
   }
 
-  const updated = await db.invoice.update({
-    where: { id: invoice.id },
-    data: {
-      status: "paid",
-      paidAt: winner.row.settledAt ? new Date(winner.row.settledAt) : new Date(),
-      txHash: winner.row.executionTransactionHash || null,
-      receivedAmount: winner.row.destinationAmount
-        ? Number(winner.row.destinationAmount) / 1_000_000
-        : invoice.amountUsd,
-      receivedAsset: winner.row.destinationAsset || "USDC",
-    },
-  });
+  const refund = results.find((r) => isRefunded(r.status?.status));
+  if (refund) {
+    const updated = await db.invoice.update({
+      where: { id: invoice.id },
+      data: { status: "refunded" },
+    });
+    return NextResponse.json({ invoice: updated, note: "refunded upstream" });
+  }
 
-  return NextResponse.json({ invoice: updated });
+  return NextResponse.json({
+    invoice,
+    note: "awaiting settlement",
+    upstream: results.map((r) => ({
+      address: r.address,
+      status: r.status?.status ?? null,
+      depositedAmount: r.status?.swapDetails?.depositedAmountFormatted ?? null,
+    })),
+  });
 }
