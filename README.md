@@ -1,95 +1,141 @@
-# Neda
+# NEDA
 
-> Freelancer invoicing on NEAR. Clients pay from any chain. You receive USDC. No wallet, no gas, no bank.
+> Invoicing that routes payments across chains, not across weeks.
 
-- **Live demo:** https://use-neda.vercel.app
-- **Demo video:** _(link added after recording)_
-- **Hackathon:** [NEAR HACKATHON 2026](https://nearhackathon.com), tracks `realworld` + `agents`
-- **Status:** Hackathon submission
-- **Browser note:** the Command Bar voice input uses the Web Speech API, which works in Google Chrome, Edge, and Safari. Vanilla Chromium and Firefox fall back to text-only input - no functionality lost.
+NEDA is a cryptocurrency invoicing platform for freelancers who are not crypto-native. The freelancer creates an invoice. The client pays USDC from any chain (Ethereum, Arbitrum, Base, Solana) in the wallet they already use. The freelancer receives USDC on their NEAR account - no bridge, no gas, no bank in between.
+
+The name NEDA means *voice* in Persian. The core thesis: you speak, the platform acts.
 
 ---
 
-## What this is
+- **Live demo:** https://use-neda.vercel.app
+- **Hackathon:** [NEAR HACKATHON 2026](https://nearhackathon.com), tracks `realworld` + `agents`
+- **Status:** Hackathon submission
+- **License:** MIT
 
-Neda is a cryptocurrency invoicing platform for freelancers who are unfamiliar with crypto. The freelancer creates an invoice. The client pays from any chain (Ethereum, Solana, Bitcoin, Base, Arbitrum, NEAR) using the wallet they already have. The freelancer receives USDC on their NEAR account. Settlement happens in minutes.
+---
 
-The whole flow is possible because of **NEAR Intents** - NEAR's cross-chain settlement layer. One deposit address per invoice, 50+ chains accepted, zero gas required from the freelancer.
+## Why this matters
 
-On top of the invoicing core, there's an **AI Command Bar** on the dashboard - a text input powered by Claude with tool-calling into the platform's actions (create invoice, list invoices, export CSV). A freelancer can type `create invoice for Acme Co $500 due Nov 30` and ship.
+Freelancers in Lagos, Nairobi, and Accra lose 15-20% of their real income to banking delays (3-5 business days), FX spreads, and 6-8% transaction fees on cross-border payments. 68% of independent workers in Sub-Saharan Africa already prefer stablecoin payouts (industry research), but adoption is blocked by three friction points: security concerns about unverified platforms (40%), technical complexity (39%), and off-ramp friction (30%).
 
-The name `Neda` means *voice* in Persian. The Command Bar is the product thesis: you speak, the platform acts.
+NEDA addresses all three. The freelancer never holds a hex address, never buys gas, never touches a bridge UI. The client pays in the asset they already understand. Settlement into USDC on NEAR takes ~2 minutes.
 
-## Who it's for
+## What it ships with
 
-Freelancers in emerging markets - specifically the ones who:
+### Core
+- **One invoice, any chain in.** Create an invoice, get one link to send to your client. They open it, pick a chain, see a QR code + an exact amount + a deposit address. Pay once. USDC lands on NEAR.
+- **Scoped per-chain quotes.** On invoice creation NEDA requests one 1Click quote per supported origin chain (Ethereum, Arbitrum, Base, Solana) in parallel. Each chain gets its own deposit address and exact input amount. The client never has to think about slippage.
+- **Live settlement polling.** The public pay page watches the invoice state. The second 1Click reports success, the status flips to `paid`, the tx hash is captured, and the dashboard updates.
+- **Accountant-ready CSV export.** Plain English column names (`date_paid`, `amount_received`, `currency_received`, `source_chain`). No hex addresses in the ledger.
 
-- Receive cross-border payments in USD from US/EU clients
-- Lose 15-20% of their real income to banking delays (3-5 days), FX spreads, and 6-8% transaction fees
-- Prefer stablecoin payouts (68% of Sub-Saharan Africa independent workers per industry research) but are blocked by security concerns, technical complexity, and off-ramp friction
+### AI Command Bar
+- Natural-language interface on the dashboard. Type `create invoice for Acme Co $500 due Nov 30` and the invoice is created. Type `show unpaid invoices` and a filtered list comes back. Type `export last month as csv` and a download link lands in the reply.
+- **Voice input works on every browser.** Click the mic. A 5-bar waveform indicates active capture. Speak. The audio is sent to our `/api/transcribe` route which forwards to NEAR AI's Whisper endpoint (`openai/whisper-large-v3`). The transcript auto-populates the input and runs. Works in Chrome, Edge, Safari (iOS/macOS), Firefox, Chromium, Android - anywhere MediaRecorder exists.
+- **One AI stack, end to end.** Both the speech-to-text and the agent reasoning run through NEAR AI's OpenAI-compatible endpoint. Same credit balance, same provider, same privacy posture.
+
+### Authentication
+- **Real NEAR wallet sign-in** via [NEAR Wallet Selector](https://github.com/near/wallet-selector). Supports HERE Wallet (mobile-native), Meteor (desktop + mobile), and MyNearWallet (desktop). HERE is listed first because it is mobile-first; MyNearWallet is configured with explicit `successUrl` / `failureUrl` so the mobile redirect round-trip returns to the right place.
+- Server-side JWT session cookie issued by the wallet connection, HS256 via `jose`. 14-day expiry, httpOnly, same-site lax.
+
+### Editable invoices
+- Any invoice can be edited before it is paid: client name, email, due date, memo, line items. If the amount or due date change, 1Click is re-quoted so the per-chain deposit addresses stay accurate. Paid invoices are immutable (409).
+
+### Share sheet
+- On the invoice detail page the Share button calls `navigator.share()` on mobile, firing the OS share sheet so the freelancer picks WhatsApp, Mail, Telegram, X, iMessage, Signal, whatever is installed. Pre-filled with amount + payment link. Desktop falls back to clipboard copy with visual confirmation.
+
+### Mobile-first UI
+- Separate layouts for desktop and mobile where the content calls for it. The dashboard invoice list is a horizontal table on desktop and a card stack on mobile. The flow diagram is a 3-column fan-in on desktop and a vertical stack with connector lines on mobile. The hero headline, inputs, and padding all adapt to the viewport.
+- All interactive areas are above 44px tall per Apple HIG. Form inputs are 16px font-size so iOS Safari does not zoom on focus.
+
+### Accessibility and motion
+- `prefers-reduced-motion` respected across the WebGL particle hero, scroll-triggered reveals, and voice listening animation.
+- Light and dark themes with warm cream + crimson palette, no near-pure-black backgrounds. `next-themes` with system preference fallback.
+
+## How NEAR fits in
+
+This product is only possible because of NEAR's primitives. The following are the specific ones that are load-bearing:
+
+### NEAR Intents (1Click API)
+- On invoice create, NEDA calls `OneClickService.getQuote` with `swapType: EXACT_OUTPUT` and `destinationAsset: usdc.near` (NEP-141, the canonical USDC on NEAR). One quote per supported chain is requested in parallel.
+- Each response includes a `correlationId`, a per-chain deposit address, and the exact `amountIn` the client must send to settle the invoice amount.
+- The client pays to the EVM / SOL address of their choice. Market makers fulfill the intent, USDC lands in the freelancer's NEAR account within ~2 minutes.
+- The sync route polls `GET /v0/quotes?filter[correlationId]=...` for every stored correlationId in parallel; first success wins.
+
+### Zero gas for the freelancer
+- The freelancer never signs a transaction to receive funds. 1Click delivers USDC into their NEAR account directly. There is no gas purchase step, no bridge UI, no swap ritual. This is the thing you cannot build this cleanly on any other chain.
+
+### NEAR AI
+- The agent reasoning (`zai-org/GLM-5.1-FP8`) and the speech-to-text (`openai/whisper-large-v3`) both run through NEAR AI's OpenAI-compatible endpoint (`https://cloud-api.near.ai/v1`). One credit balance, one provider, one privacy posture.
+
+### Wallet Selector
+- Standard NEAR identity primitive. HERE for mobile, Meteor and MyNearWallet for desktop. No custom auth broker, no third-party identity provider.
+
+### On the roadmap
+- **Meta transactions**: for v2 actions that need the freelancer to sign, wrap through a server-side relayer so they never buy NEAR for gas.
+- **Rhea Finance**: passive yield on idle USDC balances.
+- **Chain Signatures**: let the freelancer hold a NEAR account that transparently controls EVM funds for off-ramp.
 
 ## Try it in 2 minutes
 
-### Prerequisites
-- Node 22+
-- pnpm 10+
+### Live
+- Open https://use-neda.vercel.app on any device
+- Click **Launch app**, pick **HERE Wallet** (mobile) or **MyNearWallet** (desktop) to sign in with a real NEAR mainnet account
+- Create an invoice via form or by typing in the Command Bar: `create invoice for Acme Co $25 due Nov 30`
+- Click the invoice, then **Share invoice** on mobile (OS share sheet) or **Copy link** on desktop
+- Open the public link in a new tab or browser - QR code, chain picker, exact amount per chain
 
-### Local run
+### Local
+Requires Node 22+ and pnpm 10+.
+
 ```bash
 git clone https://github.com/Labi-Joy/neda.git
 cd neda
 pnpm install
-cp .env.example .env          # fill ANTHROPIC_API_KEY to enable the Command Bar
+cp .env.example .env
+# fill DATABASE_URL (Postgres connection string) and NEAR_AI_API_KEY
 pnpm exec prisma db push --schema prisma/schema.prisma
 pnpm dev
 ```
 
 Open `http://localhost:3000`.
 
-### Judge path - see the whole product in 60 seconds
+### Zero-cost integration smoke test
+A 10-check end-to-end smoke test is included. It exercises invoice CRUD, 1Click multi-chain quote generation (hits mainnet - quotes are free), mock-mode agent dispatch, and CSV formatting. Run it without touching NEAR AI credits:
 
-1. On the landing page, click **Launch App**.
-2. Enter any valid NEAR account id (e.g. `example.near`). The input accepts named or implicit accounts per NEAR's spec.
-3. On the dashboard, type in the Command Bar: `create invoice for Acme Co $500 due Nov 30`. _(Requires `ANTHROPIC_API_KEY` in `.env`.)_
-4. Alternatively, click **New invoice** and fill the form manually.
-5. On the invoice detail page, click **Copy link**. That URL is the public payment page.
-6. Open the public link in a fresh tab - this is what the client sees. A QR code, per-chain deposit addresses, live status.
-7. On mainnet, a client scans and pays from MetaMask (any EVM chain), Phantom (Solana), or Unisat (Bitcoin). The invoice status auto-flips to **Paid** within seconds of settlement.
-8. Back on the dashboard, click **Export CSV** - accountant-ready, no crypto jargon in column names.
+```bash
+pnpm exec tsx scripts/smoke.ts
+```
 
-## How NEAR fits in
+Expected output:
+```
+Neda smoke test (zero cost)
 
-This product is only possible because of two NEAR primitives. Without them, the freelancer would need a bridge, a swap UX, and NEAR gas purchased from an exchange.
+  ok clean slate
+  ok 1Click returns multi-chain deposit addresses
+     chains: eth(10.106631), arb(10.106281), base(10.106599), sol(10.1066)
+  ok mock agent: create invoice
+  ok invoice persisted
+  ok mock agent: list invoices
+  ok mock agent: show unpaid
+  ok mock agent: net-7 syntax
+  ok csv export shape
+  ok mock agent: export csv
+  ok near id validator rejects bad input
 
-### NEAR Intents (1Click API)
-
-- When an invoice is created, we call `OneClickService.getQuote` with:
-  - `swapType: EXACT_OUTPUT` (client pays exactly the invoice amount)
-  - `destinationAsset: usdc.near` (NEP-141)
-  - `originAsset: 1cs_v1:any` (the client picks the chain/token)
-  - `recipient: <freelancer NEAR account>`
-  - `recipientType: DESTINATION_CHAIN`
-- 1Click returns a `correlationId` plus a `depositAddress` on NEAR and one per supported chain.
-- The client pays to the EVM / SOL / BTC / NEAR address of their choice. Market makers fulfill the intent and USDC lands in the freelancer's NEAR account.
-- We poll `GET /v0/quotes?filter[correlationId]=...` to detect settlement, update invoice state, and surface the tx hash.
-
-### Gasless by construction
-
-The freelancer **never signs a transaction to receive funds**. 1Click delivers USDC into their NEAR account directly. There is no gas purchase step, no wallet pop-up, no bridge UI. This is the core product thesis - the thing you cannot build this cleanly on any other chain.
-
-### Where other NEAR primitives fit (on the roadmap)
-
-- **Meta transactions**: for v2 actions that need the freelancer to sign (e.g., allocating to a yield pool), wrap through a server-side relayer so they never buy NEAR for gas.
-- **Rhea Finance**: for v2 passive yield on idle USDC balances.
-- **Chain Signatures**: potential for allowing the freelancer to hold a custodial-feeling account that transparently controls EVM funds.
+10 passed, 0 failed
+```
 
 ## Tech stack
 
 - **Framework:** Next.js 16 (App Router, Turbopack) + TypeScript
-- **UI:** Tailwind 4 + shadcn/ui
-- **DB:** SQLite via Prisma 6 (dev), Postgres on Vercel (prod)
-- **NEAR Intents:** `@defuse-protocol/one-click-sdk-typescript`
-- **AI:** `@anthropic-ai/sdk` (Claude Sonnet 4.6) with tool-calling
+- **UI:** Tailwind 4, shadcn/ui, Space Grotesk + JetBrains Mono, framer-motion
+- **3D hero:** three.js + @react-three/fiber + @react-three/drei (ported GPU particle field)
+- **DB:** Postgres via Prisma 6 (Neon in prod)
+- **NEAR Intents:** `@defuse-protocol/one-click-sdk-typescript` (1Click API)
+- **NEAR Wallet:** `@near-wallet-selector/*` v8, `near-api-js` v4
+- **AI:** NEAR AI via `openai` SDK pointed at `cloud-api.near.ai/v1` (GLM for reasoning, Whisper for voice)
+- **Session:** `jose` (HS256 JWT in httpOnly cookie)
 - **QR:** `qrcode.react`
 - **Deploy:** Vercel
 
@@ -97,53 +143,86 @@ The freelancer **never signs a transaction to receive funds**. 1Click delivers U
 
 ```
 app/
-  page.tsx              landing (public)
-  i/[id]/page.tsx       public pay page (client-facing, QR + chain picker)
+  page.tsx                landing page
+  loading.tsx             root loader
+  i/[id]/page.tsx         public pay page (client-facing: QR + chain picker)
   app/
-    layout.tsx          dashboard shell + NEAR auth gate
-    page.tsx            invoice list + stats + Command Bar
-    invoices/new        new invoice form
-    invoices/[id]       invoice detail (owner view)
-    settings            NEAR account view
+    layout.tsx            dashboard shell + auth gate
+    page.tsx              invoice list + stats + Command Bar
+    invoices/new          new invoice form
+    invoices/[id]         invoice detail (owner view)
+    invoices/[id]/edit    edit invoice form
+    settings              NEAR account view
   api/
-    auth                cookie-based session (POST/DELETE)
-    invoices            CRUD (POST creates 1Click deposit address)
-    invoices/[id]       GET
-    invoices/[id]/sync  reconcile 1Click order → DB
-    export              CSV
-    agent               Claude tool-calling
+    auth                  DELETE (sign-out)
+    auth/nonce            GET (NEP-413 ready, not currently required)
+    auth/session          POST (issue session from wallet-selector connect)
+    auth/verify           POST (NEP-413 signature verify - available, unused)
+    invoices              GET list, POST create
+    invoices/[id]         GET, PATCH
+    invoices/[id]/sync    POST (reconcile 1Click order to DB)
+    agent                 POST (NEAR AI tool-calling loop)
+    transcribe            POST (multipart audio -> Whisper)
+    export                GET (CSV download)
 lib/
-  db.ts                 Prisma client
-  auth.ts               cookie session
-  intents.ts            1Click wrapper (createInvoiceDeposit, getOrderStatus)
-  agent.ts              Claude tool-calling loop
-  csv.ts                CSV export
-  types.ts              shared types + NEAR id regex
+  db.ts                   Prisma client
+  auth.ts                 session accessors
+  session.ts              JWT create / read / destroy
+  intents.ts              1Click wrappers (createMultiChainDeposit, getOrderStatus)
+  agent.ts                NEAR AI tool-calling loop with mock-mode fallback
+  record.ts               MediaRecorder helpers for voice capture
+  speech.ts               (retired) Web Speech API wrapper
+  near-config.ts          mainnet RPC + sign-in recipient
+  near-verify.ts          NEP-413 signature verification (available, unused)
+  csv.ts                  CSV export
+  types.ts                shared types + NEAR id regex
+components/
+  near/wallet-provider.tsx    NEAR Wallet Selector context
+  auth-gate.tsx               Connect wallet flow
+  command-bar.tsx             AI Command Bar with voice input
+  hero-background.tsx         WebGL particle field wrapper
+  flow-diagram.tsx            desktop + mobile money-flow diagram
+  invoice-form.tsx            create / edit form
+  pay-widget.tsx              chain picker + QR + address
+  share-button.tsx            navigator.share() with clipboard fallback
+  site-header.tsx             shared chrome
+  site-footer.tsx             shared chrome
+  shine-button.tsx            CTA primitive with light-sweep shine
+  gl/particles.tsx            R3F particle system
+  gl/shaders/*.ts             GLSL shaders
 ```
 
 ## Environment
 
+Full list in `.env.example`:
+
 | Var | Required | Purpose |
 |---|---|---|
-| `DATABASE_URL` | yes | SQLite in dev (`file:./dev.db`), Postgres in prod |
-| `ANTHROPIC_API_KEY` | optional | Enables the AI Command Bar; app runs without it |
-| `NEAR_1CLICK_JWT` | optional | Removes the 0.2% fee on Intents quotes ([register](https://partners.near-intents.org)) |
-| `NEXT_PUBLIC_APP_URL` | prod | Used to construct public invoice URLs in the agent and detail view |
+| `DATABASE_URL` | yes | Postgres connection string (Neon for prod, any Postgres for local) |
+| `NEAR_AI_API_KEY` | yes | NEAR AI key from https://nearbuilders.org/dashboard ($10 free) |
+| `NEAR_AI_MODEL` | yes | Default `zai-org/GLM-5.1-FP8` |
+| `NEAR_AI_BASE_URL` | yes | Default `https://cloud-api.near.ai/v1` |
+| `SESSION_SECRET` | yes | 32+ byte secret for JWT signing |
+| `NEXT_PUBLIC_APP_URL` | prod | Public URL used to construct invoice links and wallet callbacks |
+| `NEXT_PUBLIC_NEAR_NETWORK` | yes | `mainnet` (NEAR Intents is mainnet-only per Q-007) |
+| `NEAR_1CLICK_JWT` | no | Removes the 0.2% Intents fee if present ([register](https://partners.near-intents.org)) |
+
+Running without `NEAR_AI_API_KEY` is supported: the Command Bar falls into deterministic mock mode so tests and local dev work without spending credits.
 
 ## Hackathon submission
 
-- **Tracks:** `realworld` (primary - invoicing / stablecoin rails for cross-border freelance), `agents` (secondary - natural-language Command Bar with tool-calling)
-- **Baseline per Q-002:** None. This project is new, started 2026-11-12, all code within the hackathon window.
-- **Testnet vs mainnet:** NEAR Intents is mainnet-only per Q-007. The demo pays a small real amount (~$2 USDC) from an EVM wallet on mainnet.
+- **Tracks:** `realworld` (primary - invoicing and stablecoin rails for cross-border freelance work) and `agents` (secondary - natural-language Command Bar that executes platform actions via tool-calling).
+- **Baseline per Q-002:** None. New project, all code written within the hackathon window (started 2026-11-12).
+- **Mainnet-only:** NEAR Intents is mainnet-only per Q-007. All 1Click calls are mainnet; quotes are free, settlement would require real USDC.
 
 ## Honest scope
 
-What's shipped: invoice creation (form + AI), public pay page with per-chain addresses and QR, live status polling, dashboard, CSV export, AI Command Bar with `create_invoice` / `list_invoices` / `get_invoice` / `export_csv_url` tools.
+What's shipped: NEAR wallet sign-in, invoice create/edit/share/export, public pay page with per-chain addresses and live status, AI Command Bar with voice input (Whisper via NEAR AI), accountant-ready CSV export, mobile-polished UI, zero-cost smoke test.
 
-What's explicitly cut for the 48-hour window: voice onboarding, payroll/recurring, actual email sending, team accounts, Rhea yield integration (stubbed), real local off-ramp (requires licensed partner).
+What's explicitly out of scope for the window: payroll/recurring invoices, actual email sending to clients, team accounts, Rhea yield integration (stubbed on settings page), licensed off-ramp, mainnet payment demo (requires real USDC we did not have on hand - the integration is proven by the smoke test against real 1Click mainnet quotes).
 
-## License
+## Credits
 
-MIT - see [LICENSE](./LICENSE).
+Built by [Labi-Joy](https://github.com/Labi-Joy) at NEAR HACKATHON 2026.
 
-Built at NEAR HACKATHON 2026.
+Hero WebGL particle field adapted from the [Skal Ventures template](https://skalventures.com) with the color tint and reveal behavior customized for NEDA. Motion patterns informed by @zeeuiux's Landing Page Motion Pack (hero reveal, process draw).
