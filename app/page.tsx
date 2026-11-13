@@ -2,11 +2,15 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { HeroCommand } from "@/components/hero-command";
+import { HeroHeadline } from "@/components/hero-headline";
+import { FlowDiagram } from "@/components/flow-diagram";
+import { CtaSuccess } from "@/components/cta-success";
+import { HeroBackground } from "@/components/hero-background";
 
 export default function LandingPage() {
   return (
     <main className="flex-1">
-      <header className="mx-auto max-w-6xl flex items-center justify-between px-6 py-6">
+      <header className="relative z-20 mx-auto max-w-6xl flex items-center justify-between px-6 py-6">
         <Link href="/" className="font-semibold tracking-tight text-lg">
           neda
         </Link>
@@ -27,29 +31,40 @@ export default function LandingPage() {
       </header>
 
       {/* HERO */}
-      <section className="mx-auto max-w-6xl px-6 pt-16 md:pt-28 pb-10 md:pb-16">
-        <div className="max-w-5xl">
-          <div className="text-xs font-mono text-muted-foreground">
-            Built for NEAR HACKATHON · Real-World Money
-          </div>
-          <h1 className="heading-tight mt-10 text-6xl md:text-[clamp(3.5rem,8vw,7.5rem)] leading-[0.95]">
-            Invoicing that routes payments across chains,
-            <span className="text-primary"> not across weeks.</span>
-          </h1>
-          <p className="mt-10 text-lg md:text-2xl text-muted-foreground max-w-3xl leading-relaxed">
-            Your US client pays USDC on Ethereum. You get USDC on NEAR.
-            Two minutes, no bridge, no gas, no bank.
-          </p>
-          <div className="mt-12 flex items-center gap-6">
-            <Button asChild size="lg">
-              <Link href="/app">Create your first invoice</Link>
-            </Button>
-            <a
-              href="#how"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              See the flow
-            </a>
+      <section className="relative overflow-hidden">
+        <HeroBackground />
+        {/* Soft gradient scrim so text stays legible over the particle field */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to bottom, color-mix(in oklch, var(--background) 20%, transparent) 0%, color-mix(in oklch, var(--background) 70%, transparent) 60%, var(--background) 100%)",
+          }}
+        />
+        <div className="relative z-10 mx-auto max-w-6xl px-6 pt-10 md:pt-24 pb-10 md:pb-16">
+          <div className="max-w-5xl">
+            <div className="text-xs font-mono text-muted-foreground">
+              Built for NEAR HACKATHON · Real-World Money
+            </div>
+            <div className="mt-10">
+              <HeroHeadline />
+            </div>
+            <p className="mt-10 text-lg md:text-2xl text-muted-foreground max-w-3xl leading-relaxed">
+              Your US client pays USDC on Ethereum. You get USDC on NEAR.
+              Two minutes, no bridge, no gas, no bank.
+            </p>
+            <div className="mt-12 flex items-center gap-6">
+              <Button asChild size="lg">
+                <Link href="/app">Create your first invoice</Link>
+              </Button>
+              <a
+                href="#how"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                See the flow
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -137,6 +152,38 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* SUSTAINABILITY — why this matters, who it is for, how it endures */}
+      <section className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-6 py-24">
+          <div className="grid md:grid-cols-12 gap-10">
+            <div className="md:col-span-5">
+              <div className="text-xs font-mono text-muted-foreground">
+                Why this lasts
+              </div>
+              <h2 className="heading-tight mt-4 text-4xl md:text-5xl leading-[1.02]">
+                Built so the platform going away is not a catastrophe.
+              </h2>
+            </div>
+            <div className="md:col-span-7">
+              <dl className="space-y-6 text-base">
+                <WhyRow
+                  label="Non-custodial"
+                  body="Funds settle directly to the freelancer's NEAR account. We never hold money. We have no keys to lose."
+                />
+                <WhyRow
+                  label="Open source"
+                  body="MIT. Clone, read, fork. The invoice records live on NEAR and in a plain database the freelancer owns."
+                />
+                <WhyRow
+                  label="Emerging markets first"
+                  body="Lagos, Nairobi, Accra. Built for the places where banking rails fail cross-border contract work. USD-denominated settlement so a 60% naira depreciation doesn't quietly erode a year's income."
+                />
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-24">
@@ -145,9 +192,7 @@ export default function LandingPage() {
               Invoice an overseas client in the next two minutes.
             </h2>
             <div className="mt-10 flex items-center gap-5">
-              <Button asChild size="lg">
-                <Link href="/app">Create your first invoice</Link>
-              </Button>
+              <CtaSuccess href="/app" label="Create your first invoice" />
               <a
                 href="https://github.com/Labi-Joy/neda"
                 target="_blank"
@@ -203,68 +248,6 @@ function WhyRow({ label, body }: { label: string; body: string }) {
         {label}
       </dt>
       <dd className="text-foreground leading-relaxed">{body}</dd>
-    </div>
-  );
-}
-
-function FlowDiagram() {
-  const chains = [
-    { label: "Ethereum", note: "USDC" },
-    { label: "Arbitrum", note: "USDC" },
-    { label: "Base", note: "USDC" },
-    { label: "Solana", note: "USDC" },
-  ];
-
-  return (
-    <div className="rounded-md border border-border bg-card p-6 md:p-10">
-      <div className="grid grid-cols-[1fr_auto_1fr] gap-8 md:gap-12 items-center text-sm">
-        <div className="space-y-3">
-          <div className="text-xs font-mono text-muted-foreground">
-            Client pays from
-          </div>
-          <ul className="space-y-2">
-            {chains.map((c) => (
-              <li
-                key={c.label}
-                className="flex items-center justify-between border border-border rounded px-3 py-2.5 bg-background/40"
-              >
-                <span>{c.label}</span>
-                <span className="text-xs font-mono text-muted-foreground">
-                  {c.note}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="flex flex-col items-center justify-center gap-3 py-4">
-          <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            via
-          </div>
-          <div className="h-16 w-16 rounded-full border border-primary/40 bg-primary/5 flex items-center justify-center">
-            <span className="font-mono text-xs text-primary tracking-tight">
-              intents
-            </span>
-          </div>
-          <div className="font-mono text-[11px] text-muted-foreground">
-            ~2 min
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="text-xs font-mono text-muted-foreground">
-            Freelancer receives
-          </div>
-          <div className="border border-primary/50 bg-primary/5 rounded px-3 py-2.5 flex items-center justify-between">
-            <span className="font-medium">USDC on NEAR</span>
-            <span className="text-xs font-mono text-primary">settled</span>
-          </div>
-          <div className="text-xs text-muted-foreground mt-4 leading-relaxed">
-            Zero gas purchased. Zero bridge UI. The freelancer&apos;s wallet
-            balance just goes up.
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

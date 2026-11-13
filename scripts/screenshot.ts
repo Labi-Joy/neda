@@ -19,7 +19,7 @@ async function shoot(theme: "dark" | "light", path: string, name: string) {
   }, theme);
   await page.goto(`http://localhost:3000${path}`, { waitUntil: "networkidle" });
   // Wait for theme-provider to resolve and for fonts
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(3500);
   await page.screenshot({
     path: `${OUT}/${name}-${theme}.png`,
     fullPage: true,
@@ -50,7 +50,7 @@ async function shootAuthed(theme: "dark" | "light", path: string, name: string) 
     } catch {}
   }, theme);
   await page.goto(`http://localhost:3000${path}`, { waitUntil: "networkidle" });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(3500);
   await page.screenshot({
     path: `${OUT}/${name}-${theme}.png`,
     fullPage: true,
