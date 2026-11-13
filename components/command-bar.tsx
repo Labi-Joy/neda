@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { isSpeechAvailable, startDictation } from "@/lib/speech";
+import { isRecordAvailable, startRecording, type Recorder } from "@/lib/record";
 
 const EXAMPLES = [
   "create invoice for Acme Co $500 due Nov 30",
@@ -11,20 +11,19 @@ const EXAMPLES = [
   "export last month as csv",
 ];
 
+type VoiceState = "idle" | "recording" | "transcribing";
+
 export function CommandBar({ nearId }: { nearId: string }) {
   const [value, setValue] = useState("");
   const [pending, start] = useTransition();
   const [reply, setReply] = useState<string | null>(null);
-  const [listening, setListening] = useState(false);
-  const [speechAvailable, setSpeechAvailable] = useState(false);
-  const stopDictationRef = useRef<(() => void) | null>(null);
+  const [voice, setVoice] = useState<VoiceState>("idle");
+  const [voiceAvailable, setVoiceAvailable] = useState(false);
+  const recorderRef = useRef<Recorder | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    setSpeechAvailable(isSpeechAvailable());
-    return () => {
-      stopDictationRef.current?.();
-    };
+    setVoiceAvailable(isRecordAvailable());
   }, []);
 
   function run(message: string) {
@@ -56,54 +55,75 @@ export function CommandBar({ nearId }: { nearId: string }) {
     run(value);
   }
 
-  function toggleMic() {
-    if (listening) {
-      stopDictationRef.current?.();
-      stopDictationRef.current = null;
-      setListening(false);
+  async function toggleMic() {
+    if (voice === "recording") {
+      const rec = recorderRef.current;
+      recorderRef.current = null;
+      if (!rec) {
+        setVoice("idle");
+        return;
+      }
+      setVoice("transcribing");
+      try {
+        const blob = await rec.stop();
+        if (blob.size < 500) {
+          toast.error("Did not catch anything. Try again.");
+          setVoice("idle");
+          return;
+        }
+        const fd = new FormData();
+        fd.append("audio", blob, "voice.webm");
+        const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          toast.error(err.error ?? "Transcription failed");
+          setVoice("idle");
+          return;
+        }
+        const { text } = (await res.json()) as { text: string };
+        if (!text.trim()) {
+          toast.error("Did not catch anything. Try again.");
+          setVoice("idle");
+          return;
+        }
+        setValue(text);
+        setVoice("idle");
+        run(text);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Transcription crashed");
+        setVoice("idle");
+      }
       return;
     }
 
-    const stop = startDictation({
-      onInterim: (text) => setValue(text),
-      onFinal: (text) => {
-        setValue(text);
-        setListening(false);
-        stopDictationRef.current = null;
-        // Auto-run on final transcription so it feels like a real voice command
-        run(text);
-      },
-      onError: (err) => {
-        if (err === "not-allowed") {
-          toast.error(
-            "Microphone access was blocked. Enable it in your browser settings.",
-          );
-        } else if (err === "network" || err === "service-not-allowed") {
-          toast.error(
-            "Voice recognition unavailable in this browser build. Try Google Chrome or Edge.",
-            { duration: 6000 },
-          );
-        } else if (err === "no-speech") {
-          toast.error("Did not catch that. Try again or type instead.");
-        } else {
-          toast.error(`Voice error: ${err}`);
-        }
-        setListening(false);
-        stopDictationRef.current = null;
-      },
-      onEnd: () => {
-        setListening(false);
-        stopDictationRef.current = null;
-      },
-    });
-
-    if (stop) {
-      stopDictationRef.current = stop;
-      setListening(true);
-    } else {
-      toast.error("Voice input is not available in this browser");
+    try {
+      const rec = await startRecording();
+      recorderRef.current = rec;
+      setVoice("recording");
+    } catch (err) {
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        toast.error("Microphone access was blocked. Enable it in browser settings.");
+      } else {
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Could not access the microphone",
+        );
+      }
+      setVoice("idle");
     }
   }
+
+  const statusLabel =
+    voice === "recording"
+      ? "listening"
+      : voice === "transcribing"
+        ? "transcribing"
+        : pending
+          ? "running"
+          : "command bar — neda ai";
+
+  const disableInput = pending || voice !== "idle";
 
   return (
     <div className="rounded-md border border-border bg-card overflow-hidden">
@@ -111,16 +131,12 @@ export function CommandBar({ nearId }: { nearId: string }) {
         <div className="flex items-center gap-2">
           <span
             className={`inline-block h-1.5 w-1.5 rounded-full ${
-              listening ? "bg-primary animate-pulse" : "bg-primary/60"
+              voice === "recording" || voice === "transcribing" || pending
+                ? "bg-primary animate-pulse"
+                : "bg-primary/60"
             }`}
           />
-          <span>
-            {listening
-              ? "listening…"
-              : pending
-                ? "running…"
-                : "command bar — neda ai"}
-          </span>
+          <span>{statusLabel}</span>
         </div>
         <span className="hidden sm:inline">type · speak · paste</span>
       </div>
@@ -133,37 +149,36 @@ export function CommandBar({ nearId }: { nearId: string }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={
-            listening
+            voice === "recording"
               ? "Listening — speak now"
-              : "create invoice for Acme Co $500 due Nov 30"
+              : voice === "transcribing"
+                ? "Transcribing with NEAR AI…"
+                : "create invoice for Acme Co $500 due Nov 30"
           }
           className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground/60"
-          disabled={pending || listening}
+          disabled={disableInput}
           aria-label="Command bar input"
         />
 
-        {speechAvailable && (
+        {voiceAvailable && (
           <button
             type="button"
             onClick={toggleMic}
-            disabled={pending}
-            aria-label={listening ? "Stop voice input" : "Start voice input"}
+            disabled={pending || voice === "transcribing"}
+            aria-label={voice === "recording" ? "Stop recording" : "Start voice input"}
             className={`inline-flex items-center justify-center h-8 w-8 rounded-md border transition-colors disabled:opacity-40 ${
-              listening
+              voice === "recording"
                 ? "border-primary text-primary bg-primary/10"
                 : "border-border text-muted-foreground hover:border-primary/60 hover:text-primary"
             }`}
           >
-            {listening ? <StopIcon /> : <MicIcon />}
-            {listening && (
-              <span className="absolute inline-flex h-8 w-8 rounded-md bg-primary/20 animate-ping" />
-            )}
+            {voice === "recording" ? <StopIcon /> : <MicIcon />}
           </button>
         )}
 
         <button
           type="submit"
-          disabled={pending || listening || !value.trim()}
+          disabled={disableInput || !value.trim()}
           className="text-xs font-mono px-3 py-1.5 rounded-md border border-border hover:border-primary/60 hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {pending ? "…" : "run ↵"}
@@ -176,7 +191,7 @@ export function CommandBar({ nearId }: { nearId: string }) {
           <span className="flex-1">{reply}</span>
         </div>
       )}
-      {!reply && !pending && !value && !listening && (
+      {!reply && !pending && !value && voice === "idle" && (
         <div className="px-5 pb-4 flex flex-wrap gap-2">
           {EXAMPLES.map((e) => (
             <button
