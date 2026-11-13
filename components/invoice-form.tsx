@@ -1,11 +1,22 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShineButton } from "@/components/shine-button";
+import { Spinner } from "@/components/page-loader";
 import { toast } from "sonner";
+
+// 1Click makes 4 parallel chain quotes, which usually resolves in 2-4s but
+// can take longer at mainnet peak. Walk the user through what's happening
+// so the button does not feel frozen.
+const PROGRESS_STEPS = [
+  "Saving invoice",
+  "Requesting chain quotes from NEAR Intents",
+  "Generating per-chain deposit addresses",
+  "Preparing payment link",
+];
 
 type Line = { description: string; quantity: number; unitPriceUsd: number };
 
@@ -22,7 +33,22 @@ export function InvoiceForm() {
     { description: "", quantity: 1, unitPriceUsd: 0 },
   ]);
   const [pending, start] = useTransition();
+  const [progressStep, setProgressStep] = useState(0);
   const router = useRouter();
+
+  // While pending, advance the progress label every ~1.1s so the user sees
+  // movement. If the request finishes before the last label, we land on
+  // success before confusing them.
+  useEffect(() => {
+    if (!pending) {
+      setProgressStep(0);
+      return;
+    }
+    const t = setInterval(() => {
+      setProgressStep((s) => Math.min(s + 1, PROGRESS_STEPS.length - 1));
+    }, 1100);
+    return () => clearInterval(t);
+  }, [pending]);
 
   const total = lines.reduce((s, l) => s + l.quantity * l.unitPriceUsd, 0);
 
@@ -199,15 +225,27 @@ export function InvoiceForm() {
       </section>
 
       <div className="flex justify-end gap-4 items-center">
-        <button
-          type="button"
-          onClick={() => history.back()}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          Cancel
-        </button>
+        {pending && (
+          <div
+            className="flex items-center gap-2 text-sm font-mono text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
+            <Spinner />
+            <span>{PROGRESS_STEPS[progressStep]}…</span>
+          </div>
+        )}
+        {!pending && (
+          <button
+            type="button"
+            onClick={() => history.back()}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Cancel
+          </button>
+        )}
         <ShineButton type="submit" size="lg" disabled={pending}>
-          {pending ? "Creating invoice…" : "Create invoice"}
+          {pending ? "Creating invoice" : "Create invoice"}
         </ShineButton>
       </div>
     </form>

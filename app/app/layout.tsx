@@ -1,7 +1,9 @@
-import Link from "next/link";
 import { getCurrentNearId } from "@/lib/auth";
 import { AuthGate } from "@/components/auth-gate";
 import { SignOutButton } from "@/components/sign-out-button";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function AppLayout({
   children,
@@ -13,45 +15,29 @@ export default async function AppLayout({
   if (!nearId) {
     return (
       <div className="flex-1 flex flex-col">
-        <header className="mx-auto w-full max-w-6xl flex items-center justify-between px-6 py-5">
-          <Link href="/" className="font-bold tracking-widest text-lg">
-            NEDA
-          </Link>
-        </header>
+        <SiteHeader variant="public" />
         <AuthGate />
+        <SiteFooter />
       </div>
     );
   }
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="border-b border-border">
-        <div className="mx-auto max-w-6xl flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-8">
-            <Link href="/app" className="font-bold tracking-widest text-lg">
-              NEDA
-            </Link>
-            <nav className="flex gap-6 text-sm text-muted-foreground">
-              <Link href="/app" className="hover:text-foreground">
-                Invoices
-              </Link>
-              <Link
-                href="/app/settings"
-                className="hover:text-foreground"
-              >
-                Settings
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
+      <SiteHeader
+        variant="app-authed"
+        rightSlot={
+          <>
             <span className="text-muted-foreground font-mono text-xs hidden md:inline">
               {nearId}
             </span>
+            <ThemeToggle />
             <SignOutButton />
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
       <main className="flex-1">{children}</main>
+      <SiteFooter />
     </div>
   );
 }

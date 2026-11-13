@@ -1,34 +1,16 @@
-import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { HeroCommand } from "@/components/hero-command";
 import { HeroHeadline } from "@/components/hero-headline";
 import { FlowDiagram } from "@/components/flow-diagram";
 import { CtaSuccess } from "@/components/cta-success";
 import { HeroBackground } from "@/components/hero-background";
 import { ShineButton } from "@/components/shine-button";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
 export default function LandingPage() {
   return (
     <main className="flex-1">
-      <header className="relative z-20 mx-auto max-w-6xl flex items-center justify-between px-6 py-6">
-        <Link href="/" className="font-bold tracking-widest text-lg">
-          NEDA
-        </Link>
-        <nav className="flex items-center gap-3">
-          <ThemeToggle />
-          <a
-            href="https://github.com/Labi-Joy/neda"
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs font-mono text-muted-foreground hover:text-foreground px-2 py-1"
-          >
-            github
-          </a>
-          <ShineButton href="/app" size="sm">
-            Launch app
-          </ShineButton>
-        </nav>
-      </header>
+      <SiteHeader variant="public" />
 
       {/* HERO - split: headline on left, Command Bar on right */}
       <section className="relative overflow-hidden">
@@ -193,37 +175,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-border">
-        <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs font-mono text-muted-foreground">
-          <div>NEDA / 2026 / built at NEAR HACKATHON</div>
-          <div className="flex gap-5">
-            <a
-              href="https://github.com/Labi-Joy/neda"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-foreground"
-            >
-              github
-            </a>
-            <a
-              href="https://docs.near-intents.org/"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-foreground"
-            >
-              near intents
-            </a>
-            <a
-              href="https://near.ai/"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-foreground"
-            >
-              near ai
-            </a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

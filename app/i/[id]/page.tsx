@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
 import { PayWidget } from "@/components/pay-widget";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import type { LineItem } from "@/lib/types";
 
 function formatUsd(n: number): string {
@@ -29,22 +30,17 @@ export default async function PublicInvoicePage({
   const isPaid = invoice.status === "paid";
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10 space-y-8">
-      {/* Top bar */}
-      <div className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="font-bold tracking-widest text-lg text-muted-foreground hover:text-foreground"
-        >
-          NEDA
-        </Link>
-        <Badge
-          variant={isPaid ? "default" : "secondary"}
-          className="capitalize font-mono text-xs px-2.5 py-1"
-        >
-          {invoice.status}
-        </Badge>
-      </div>
+    <div className="flex-1 flex flex-col">
+      <SiteHeader variant="public" />
+      <div className="mx-auto max-w-2xl w-full px-6 py-10 space-y-8 flex-1">
+        <div className="flex items-center justify-end">
+          <Badge
+            variant={isPaid ? "default" : "secondary"}
+            className="capitalize font-mono text-xs px-2.5 py-1"
+          >
+            {invoice.status}
+          </Badge>
+        </div>
 
       {/* From */}
       <div>
@@ -129,6 +125,8 @@ export default async function PublicInvoicePage({
         Cross-chain settlement via NEAR Intents. Any token on any supported
         chain. The freelancer receives USDC on NEAR.
       </p>
+      </div>
+      <SiteFooter />
     </div>
   );
 }
