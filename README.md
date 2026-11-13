@@ -2,10 +2,11 @@
 
 > Freelancer invoicing on NEAR. Clients pay from any chain. You receive USDC. No wallet, no gas, no bank.
 
-- **Live demo:** _(URL goes here after Vercel deploy)_
-- **Demo video:** _(X/YouTube link goes here after recording)_
+- **Live demo:** https://use-neda.vercel.app
+- **Demo video:** _(link added after recording)_
 - **Hackathon:** [NEAR HACKATHON 2026](https://nearhackathon.com), tracks `realworld` + `agents`
-- **Status:** Hackathon MVP, 48-hour build (started 2026-11-12)
+- **Status:** Hackathon submission
+- **Browser note:** the Command Bar voice input uses the Web Speech API, which works in Google Chrome, Edge, and Safari. Vanilla Chromium and Firefox fall back to text-only input - no functionality lost.
 
 ---
 

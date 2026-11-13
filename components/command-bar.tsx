@@ -74,11 +74,20 @@ export function CommandBar({ nearId }: { nearId: string }) {
         run(text);
       },
       onError: (err) => {
-        toast.error(
-          err === "not-allowed"
-            ? "Microphone access was blocked. Enable it in your browser settings."
-            : `Voice input error: ${err}`,
-        );
+        if (err === "not-allowed") {
+          toast.error(
+            "Microphone access was blocked. Enable it in your browser settings.",
+          );
+        } else if (err === "network" || err === "service-not-allowed") {
+          toast.error(
+            "Voice recognition unavailable in this browser build. Try Google Chrome or Edge.",
+            { duration: 6000 },
+          );
+        } else if (err === "no-speech") {
+          toast.error("Did not catch that. Try again or type instead.");
+        } else {
+          toast.error(`Voice error: ${err}`);
+        }
         setListening(false);
         stopDictationRef.current = null;
       },
