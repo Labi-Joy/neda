@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { WalletProvider } from "@/components/near/wallet-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -38,8 +39,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster position="top-right" richColors />
+          <WalletProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+          </WalletProvider>
         </ThemeProvider>
       </body>
     </html>

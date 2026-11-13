@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -15,10 +15,10 @@ model Invoice {
   amountUsd        Float
   dueDate          DateTime
   memo             String?
-  lineItems        String    // JSON string
-  status           String    @default("pending") // pending, paid, expired, refunded
+  lineItems        String    @db.Text
+  status           String    @default("pending")
   correlationId    String?
-  depositAddresses String?   // JSON string: { near, eth, sol, btc, ... }
+  depositAddresses String?   @db.Text
   destinationAsset String?
   paidAt           DateTime?
   txHash           String?
